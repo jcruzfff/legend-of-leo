@@ -1,0 +1,257 @@
+# Overview
+Legend of Leo is a browser-based, pixel-style onboarding RPG that teaches users how to interact with the Aleo blockchain. The game uses a top-down Game Boy aesthetic powered by Phaser 3, rendered inside a Next.js + Tailwind CSS environment. The player journeys through interactive levels designed to teach core privacy principles, blockchain safety, and hands-on Aleo interactions through guided tasks and gamified learning.
+
+The game solves the problem of complex Web3 onboarding by creating an engaging, low-pressure environment where users can learn by doing. It targets crypto-curious users who may be intimidated by traditional blockchain onboarding methods, as well as existing crypto users who want to understand Aleo's privacy-focused approach.
+
+# Core Features
+
+## Training Facility Environment
+- **What it does**: Provides a contained, guided environment for players to learn foundational Aleo concepts
+- **Why it's important**: Reduces overwhelm and creates a focused learning path with clear objectives
+- **How it works**: Players navigate through a pixel-art facility with different zones that each teach a specific concept
+
+## Leo Wallet Integration
+- **What it does**: Allows players to connect their Leo Wallet to the game, view their balance, and perform transactions
+- **Why it's important**: Creates practical, hands-on experience with real wallet interaction
+- **How it works**: Connects to the Leo Wallet browser extension API to request connections and trigger transactions
+
+## Interactive Tutorials
+- **What it does**: Guides players through key actions like setting up a wallet, claiming an Aleo name, and using the faucet
+- **Why it's important**: Transforms complex technical processes into manageable, gamified steps
+- **How it works**: Combines NPC dialogue, visual cues, and guided interaction with actual blockchain tools
+
+## AI-Powered NPCs
+- **What it does**: Provides contextual help and guidance through AI-driven character interactions
+- **Why it's important**: Offers personalized assistance and improves engagement through character-driven storytelling
+- **How it works**: Integrates with ChatGPT API to generate responses based on player questions and game context
+
+## Quiz-Based Progression
+- **What it does**: Tests player understanding through conversational interactions with NPCs before allowing progression
+- **Why it's important**: Ensures knowledge retention and creates meaningful advancement through natural dialogue
+- **How it works**: NPCs ask questions in natural language, and the system analyzes player responses for key concepts and understanding
+
+## Graduation NFT System
+- **What it does**: Rewards completion of the training facility with a unique NFT achievement
+- **Why it's important**: Provides tangible reward and introduces NFT functionality
+- **How it works**: Triggers an actual on-chain minting process when all training modules are completed
+
+# User Experience
+
+## User Personas
+- **Crypto Newcomer**: No previous blockchain experience, curious but cautious
+- **Web3 Explorer**: Has used other blockchains but is new to Aleo's privacy features
+- **Education Seeker**: Motivated to learn but prefers hands-on approaches over documentation
+
+## Key User Flows
+1. **Onboarding Flow**:
+   - Land on game page
+   - Create character
+   - Receive initial guidance from Leo the Lion character
+   - Learn basic movement and interaction
+
+2. **Wallet Connection Flow**:
+   - Reach wallet tutorial area
+   - Receive prompts to install Leo Wallet if not detected
+   - Guide through connection process
+   - Verify successful connection
+
+3. **Training Completion Flow**:
+   - Complete all training modules
+   - Pass final assessment quiz
+   - Mint graduation NFT
+   - Unlock open world area
+
+## UI/UX Considerations
+- Pixel art aesthetic provides nostalgic appeal while keeping asset production manageable
+- Top-down perspective simplifies movement and interaction for non-gamers
+- Clear visual indicators for interactive elements and progression
+- Persistent help button for accessing AI assistant at any time
+- Minimal UI clutter with focus on the game environment
+- Responsive design for playability on different devices
+
+# Technical Architecture
+
+## System Components
+- **Frontend**: Next.js application with React components and Tailwind CSS
+- **Game Engine**: Phaser 3 for rendering game world and handling player interactions
+- **State Management**: React Context API for game state with local storage persistence
+- **Blockchain Connector**: Custom hooks for Leo Wallet integration
+- **AI Integration**: OpenAI API client for NPC conversations
+
+## Data Models
+- **Player**: Character attributes, progress tracking, inventory
+- **Game World**: Maps, interactive objects, NPCs, quest triggers
+- **Quests**: Objectives, completion criteria, rewards
+- **Dialogue**: NPC conversation trees, contextual help content
+- **Blockchain Transactions**: Wallet connections, transaction history, NFT ownership
+
+## APIs and Integrations
+- **Leo Wallet API**: For wallet detection, connection, and transaction execution
+- **Aleo Name Service**: For identity registration and verification
+- **Aleo Faucet API**: For requesting test tokens
+- **OpenAI API**: For generating dynamic NPC responses
+- **NFT Contract**: For minting graduation achievements
+
+## Infrastructure Requirements
+- **Frontend Hosting**: Vercel for Next.js deployment
+- **Asset Storage**: CDN for game assets (sprites, tiles, audio)
+- **Analytics**: Basic usage tracking for optimizing user experience
+- **Testnet Integration**: Aleo testnet for development and testing
+
+# Development Roadmap
+
+## MVP Phase (Foundation)
+1. **Game Engine Setup**
+   - Basic Phaser 3 integration with Next.js
+   - Character movement and collision system
+   - Camera and world boundaries
+
+2. **Training Facility Environment**
+   - Main training area map design
+   - Basic NPC placement
+   - Interactive object functionality
+
+3. **Leo Wallet Connection**
+   - Wallet detection mechanism
+   - Connection request flow
+   - Balance display
+
+4. **Tutorial System**
+   - Guided tutorial framework
+   - Step-by-step instruction display
+   - Progress tracking
+
+5. **First Two Educational Modules**
+   - Wallet setup module with interactive elements
+   - Aleo Name registration module
+
+6. **Conversational Quiz System**
+   - Natural language question-answer framework
+   - Keyword detection for answer validation
+   - NPC-driven assessment conversations
+   - Progress gating based on successful responses
+
+## Enhancement Phase
+1. **AI-Powered NPCs**
+   - ChatGPT integration for dynamic responses
+   - Context-aware conversation system
+   - Help functionality through character interaction
+
+2. **Additional Educational Modules**
+   - Faucet interaction module
+   - Transaction submission module
+   - NFT minting experience
+
+3. **Achievement System**
+   - In-game achievement tracking
+   - Graduation NFT implementation
+   - Certificate of completion
+
+4. **User Account System**
+   - Progress saving across sessions
+   - User profile and statistics
+   - Learning history tracking
+
+## Future Expansion Phase
+1. **Open World Environment**
+   - Expanded game map with multiple zones
+   - Free exploration mechanics
+   - Advanced mission system
+
+2. **Advanced Aleo Integration**
+   - Verulink bridge interaction
+   - Private swap demonstration
+   - Governance participation simulation
+
+3. **Multiplayer Elements**
+   - Other player visualization
+   - Simple interaction mechanisms
+   - Community achievements
+
+4. **Enhanced Gamification**
+   - Inventory and collection system
+   - Mini-games for practicing concepts
+   - Leaderboards and competitions
+
+# Logical Dependency Chain
+
+1. **Foundation Components** (Must be built first)
+   - Next.js + Phaser 3 integration framework
+   - Basic character movement and game world
+   - Core UI components and layout
+
+2. **Interactive Systems** (Builds on foundation)
+   - NPC interaction mechanics
+   - Object interaction system
+   - Dialogue display system
+
+3. **Blockchain Connection** (Enables core functionality)
+   - Leo Wallet detection and connection
+   - Basic transaction display
+   - Address and balance visualization
+
+4. **Tutorial Framework** (Leverages previous systems)
+   - Step-by-step guidance system
+   - Progress tracking mechanism
+   - Quiz and validation functionality
+
+5. **Educational Content** (Fills the framework)
+   - Tutorial content for wallet setup
+   - Tutorial content for Aleo Name
+   - Tutorial content for faucet and transactions
+
+6. **Reward System** (Completion mechanism)
+   - Achievement tracking
+   - NFT minting integration
+   - Completion recognition
+
+# Risks and Mitigations
+
+## Technical Challenges
+- **Risk**: Integration complexity between Phaser 3 and Next.js
+  **Mitigation**: Start with a simple proof-of-concept integration focusing on basic functionality before adding game features
+
+- **Risk**: Wallet API compatibility issues across browsers
+  **Mitigation**: Implement feature detection and graceful fallbacks; provide clear browser compatibility information
+
+- **Risk**: Performance issues with complex game environments
+  **Mitigation**: Optimize asset loading, implement zone-based rendering, and maintain performance budgets
+
+## MVP Scoping
+- **Risk**: Feature creep extending development timeline
+  **Mitigation**: Strictly prioritize features based on educational value; defer visual polish and nice-to-have features
+
+- **Risk**: Educational content becoming outdated due to Aleo updates
+  **Mitigation**: Design content modules with abstraction layers that can be updated independently from game mechanics
+
+- **Risk**: Complexity overwhelming new users
+  **Mitigation**: User test with absolute beginners; implement progressive difficulty and optional advanced content
+
+## Resource Constraints
+- **Risk**: Art asset production becoming bottleneck
+  **Mitigation**: Utilize consistent tile-based design system; reuse and recombine assets; consider procedural generation
+
+- **Risk**: AI integration costs scaling unpredictably
+  **Mitigation**: Implement caching for common questions; create fallback response system; set usage limits
+
+- **Risk**: Blockchain transaction costs for testing
+  **Mitigation**: Use testnet for all development and demonstration purposes; clearly indicate test vs. main network
+
+# Appendix
+
+## Game Engine Research
+- Phaser 3 selected for its performance, active community, and compatibility with web standards
+- Next.js chosen for its SEO benefits, fast page loads, and server-side rendering capabilities
+- Alternative engines considered: Unity (WebGL export), PixiJS, and custom WebGL solutions
+
+## Technical Specifications
+- Minimum supported resolution: 800x600
+- Target platforms: Desktop (primary), Tablet (secondary)
+- Estimated asset count: ~200 unique tiles, ~20 character sprites, ~50 interactive objects
+- Anticipated initial load size: <5MB
+- Blockchain interactions: 5-8 distinct operation types
+
+## Educational Content Structure
+- Each module follows the pattern: Introduction > Demonstration > Guided Practice > Independent Application > Assessment
+- Content vetted by Aleo ecosystem experts to ensure technical accuracy
+- Difficulty progression designed to maintain the optimal challenge level 

@@ -1,0 +1,107 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Documentation Sources for Legend of Leo
+
+- **Aleo Integration Documentation**
+  - Use [Aleo Wallet Adapter](mdc:https:/docs.leo-lang.org/sdk) for wallet connection implementation
+  - Reference [Leo SDK](mdc:https:/docs.leo-lang.org/sdk/create-leo-app/tutorial) for Aleo program development
+  - Consult [Leo Language Docs](mdc:https:/docs.leo-lang.org/getting_started) for syntax and blockchain interaction
+
+- **Blockchain Interaction Patterns**
+  - Reference [Provable](mdc:https:/docs.leo-lang.org/sdk/create-leo-app/tutorial) for deployment workflows
+  - Use [Leo Developer Toolkit](mdc:https:/docs.leo-lang.org/testnet/getting_started/developer_toolkit) for testnet integration
+  - Follow Testnet Beta guidelines for compatibility with latest features
+
+- **Aleo Name Service (ANS) Integration**
+  - Reference [ANS Developer Guide](mdc:https:/docs.aleonames.id/developer-guide) for name service fundamentals
+  - Implement [ANS dApp Integration](mdc:https:/docs.aleonames.id/developer-guide/integrate-ans-into-dapp) for converting addresses to readable names
+  - Follow [ANS Wallet Integration](mdc:https:/docs.aleonames.id/developer-guide/integrate-ans-into-wallet) for primary name display and transfers
+  - Use [ANS Indexer](mdc:https:/docs.aleonames.id/developer-guide/ans-indexer) for backend integration and efficient queries
+  - Implement user-friendly interfaces for ANS-based interactions using the documented API endpoints
+
+- **Phaser Game Engine Implementation**
+  - Reference [Phaser Documentation](mdc:https:/newdocs.phaser.io/docs/3.60.0) for general game development concepts
+  - Use [Phaser API Reference](mdc:https:/docs.phaser.io/api-documentation/api-documentation) for specific class implementations
+  - Follow [Phaser Getting Started Guide](mdc:https:/newdocs.phaser.io/docs/3.60.0) for game setup and scene structure
+  - Study [Phaser 3 First Game Tutorial](mdc:https:/phaser.io/tutorials/making-your-first-phaser-3-game) for practical implementation patterns
+  - Implement pixel-art rendering using Phaser's [Round Pixels](mdc:https:/newdocs.phaser.io/docs/3.60.0) feature for Game Boy aesthetic
+  - Use Phaser's Arcade Physics for character movement and game world interactions
+  - Structure game scenes following the standard Phaser 3 lifecycle methods (preload, create, update)
+
+- **Aseprite Pixel Art & Animation**
+  - Use [Aseprite Documentation](mdc:https:/www.aseprite.org/docs) for creating pixel art assets and animations
+  - Follow the [Aseprite Sprite Sheet Export](mdc:https:/www.aseprite.org/docs/sprite-sheet) guidelines for Phaser-compatible sprite sheets
+  - Implement [Aseprite Animation](mdc:https:/www.aseprite.org/docs/animation) techniques for character and object animations
+  - Utilize [Aseprite Tilemap](mdc:https:/www.aseprite.org/docs/tilemap) features for creating game environment tiles
+  - Maintain Game Boy color palette limitations using Aseprite's color mode options
+  - Structure sprite sheets for optimal loading in Phaser's texture atlas format
+
+- **AI-Powered NPCs and Conversational Systems**
+  - Implement [OpenAI API](mdc:https:/platform.openai.com/docs/api-reference/introduction) for NPC dialogue generation
+  - Use [Prompt Engineering Guide](mdc:https:/platform.openai.com/docs/guides/prompt-engineering) for conversation design
+  - Implement [Function Calling](mdc:https:/platform.openai.com/docs/guides/function-calling) for gameplay-specific responses
+
+- **Implementation Guidelines**
+  ```typescript
+  // ✅ DO: Reference appropriate documentation in comments
+  // Following Aleo Wallet Adapter docs for wallet detection
+  const detectWallet = async () => {
+    const isInstalled = await checkIfWalletInstalled();
+    // Implementation based on Aleo Wallet Adapter section 2.3
+  };
+  
+  // ❌ DON'T: Implement without consulting documentation
+  const someBlockchainFunction = () => {
+    // Making assumptions about how the blockchain works without checking docs
+  };
+  ```
+
+- **Game Development Patterns**
+  ```typescript
+  // ✅ DO: Follow Phaser scene lifecycle methods
+  class TrainingFacility extends Phaser.Scene {
+    constructor() {
+      super('TrainingFacility');
+    }
+    
+    preload() {
+      // Load assets following Phaser asset loading patterns
+      this.load.image('player', 'assets/sprites/player.png');
+    }
+    
+    create() {
+      // Set up game objects and physics as documented in Phaser guides
+      this.player = this.physics.add.sprite(400, 300, 'player');
+      this.player.setCollideWorldBounds(true);
+    }
+    
+    update() {
+      // Handle game loop logic following Phaser best practices
+    }
+  }
+  
+  // ❌ DON'T: Mix game engine responsibilities
+  class BadImplementation {
+    constructor() {
+      // Bypassing Phaser's scene management
+    }
+    
+    handleEverything() {
+      // Mixing rendering, physics, and game logic incorrectly
+    }
+  }
+  ```
+
+- **Conversational Quiz Implementation**
+  - Use OpenAI's [Function Calling](mdc:https:/platform.openai.com/docs/actions) to extract keywords from player responses
+  - Implement evaluation logic based on OpenAI's [Evaluation Guidelines](mdc:https:/platform.openai.com/docs/guides/prompt-engineering)
+  - Structure NPC dialogue following conversational design patterns from documentation
+
+- **Documentation Search Order**
+  1. First check project-specific patterns in existing code
+  2. Reference the specific documentation source listed in this rule
+  3. Validate implementation against example code in documentation
+  4. Fall back to general best practices if documentation is unclear

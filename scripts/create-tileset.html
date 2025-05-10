@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tileset Generator</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 1px solid #000;
+      margin-bottom: 10px;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Simple Tileset Generator</h1>
+  <p>This will create a 128x64 tileset with 4x2 tiles (32x32 each)</p>
+  
+  <canvas id="tilesetCanvas" width="128" height="64"></canvas>
+  <div>
+    <button id="downloadBtn">Download Tileset</button>
+  </div>
+  
+  <script>
+    // Get the canvas and context
+    const canvas = document.getElementById('tilesetCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Tile colors for our simple tileset
+    const tileColors = [
+      '#8BC34A', // Grass
+      '#9CCC65', // Grass variant
+      '#FFC107', // Sand/Path
+      '#03A9F4', // Water
+      '#795548', // Dirt/Wall
+      '#9E9E9E', // Stone
+      '#F44336', // Barrier
+      '#4CAF50'  // Tree/Bush
+    ];
+    
+    // Draw the tileset
+    function drawTileset() {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw each tile
+      const tileWidth = 32;
+      const tileHeight = 32;
+      
+      for (let y = 0; y < 2; y++) {
+        for (let x = 0; x < 4; x++) {
+          const index = y * 4 + x;
+          const color = tileColors[index];
+          
+          // Fill the tile with its color
+          ctx.fillStyle = color;
+          ctx.fillRect(x * tileWidth, y * tileHeight, tileWidth, tileHeight);
+          
+          // Add a border
+          ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+          ctx.strokeRect(x * tileWidth, y * tileHeight, tileWidth, tileHeight);
+          
+          // Add some texture
+          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          if (index === 0) { // Grass
+            for (let i = 0; i < 5; i++) {
+              const dotX = x * tileWidth + Math.random() * tileWidth;
+              const dotY = y * tileHeight + Math.random() * tileHeight;
+              ctx.fillRect(dotX, dotY, 2, 2);
+            }
+          } else if (index === 3) { // Water
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(x * tileWidth + 5, y * tileHeight + 15, 22, 2);
+          }
+          
+          // Add tile number for reference
+          ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          ctx.font = '10px Arial';
+          ctx.fillText(index + 1, x * tileWidth + 3, y * tileHeight + 10);
+        }
+      }
+    }
+    
+    // Set up download button
+    document.getElementById('downloadBtn').addEventListener('click', function() {
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      // Create a link and trigger download
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'tileset.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+    
+    // Draw the tileset when page loads
+    drawTileset();
+  </script>
+</body>
+</html> 
