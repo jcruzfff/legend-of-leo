@@ -2,22 +2,26 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useGameState } from '@/lib/contexts/GameContext';
+import { gameScenes, SceneKeys } from '@/lib/game/scenes';
+import dynamic from 'next/dynamic';
 
 interface GameContainerProps {
   width?: number;
   height?: number;
   isNewGame?: boolean;
+  initialScene?: string;
 }
 
-const GameContainer: React.FC<GameContainerProps> = ({
+// Create a client-only version of this component
+const GameContainerClient = ({ 
   width = 800,
-  height = 600,
+  height = 600, 
   isNewGame = false,
-}) => {
+  initialScene = SceneKeys.Level1
+}: GameContainerProps) => {
   const gameRef = useRef<any | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const [phaser, setPhaser] = useState<any | null>(null);
-  const [sceneModule, setSceneModule] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { gameState } = useGameState();
@@ -32,7 +36,6 @@ const GameContainer: React.FC<GameContainerProps> = ({
         const phaserModule = await import('phaser');
         setPhaser(phaserModule.default);
         
-        // Don't dynamically import MainScene here anymore
         setLoading(false);
       } catch (error) {
         console.error('Failed to load Phaser:', error);
@@ -66,9 +69,6 @@ const GameContainer: React.FC<GameContainerProps> = ({
 
     const initGame = async () => {
       try {
-        // Dynamically import MainScene
-        const MainSceneModule = await import('./scenes/MainScene');
-        
         // Create a custom data object to pass to the scene
         const gameData = {
           isNewGame,
@@ -84,13 +84,26 @@ const GameContainer: React.FC<GameContainerProps> = ({
             super({ key: 'BootScene' });
           }
 
-          create() {
+          async create() {
             // Store game data in the registry
             this.registry.set('gameData', gameData);
             
-            // Add the main scene as a proper class instance
-            const MainScene = MainSceneModule.default;
-            this.scene.add('MainScene', new MainScene(), true);
+            // Dynamically load game scenes
+            const scenes = await gameScenes();
+            
+            // Add all game scenes first
+            for (const GameSceneClass of scenes) {
+              const scene = new GameSceneClass();
+              const key = scene.sys.settings.key;
+              
+              // Only add if not already added
+              if (!this.scene.get(key)) {
+                this.scene.add(key, GameSceneClass);
+              }
+            }
+            
+            // Start the initial scene
+            this.scene.start(initialScene);
           }
         }
 
@@ -99,7 +112,7 @@ const GameContainer: React.FC<GameContainerProps> = ({
           type: phaser.AUTO,
           width: '100%',  // Full container width
           height: '100%', // Full container height
-          backgroundColor: '#303040', // Modern UI background color
+          backgroundColor: '#2B2A3D', // Updated to match level background color
           pixelArt: true,
           roundPixels: true,
           scale: {
@@ -129,11 +142,11 @@ const GameContainer: React.FC<GameContainerProps> = ({
 
     initGame();
     
-  }, [phaser, width, height, isNewGame, gameState]);
+  }, [phaser, width, height, isNewGame, gameState, initialScene]);
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-ui-bg">
+      <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#2B2A3D' }}>
         <div className="text-center">
           <div className="mb-4 text-primary-200 text-xl animate-pulse">
             Loading game engine...
@@ -146,7 +159,7 @@ const GameContainer: React.FC<GameContainerProps> = ({
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-ui-bg">
+      <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#2B2A3D' }}>
         <div className="text-center text-red-500 p-4 bg-black bg-opacity-50 rounded-lg">
           <div className="text-xl mb-2">Error</div>
           <div>{error}</div>
@@ -170,5 +183,10 @@ const GameContainer: React.FC<GameContainerProps> = ({
     />
   );
 };
+
+// Dynamic import with ssr: false to prevent server-side rendering
+const GameContainer = dynamic(() => Promise.resolve(GameContainerClient), {
+  ssr: false,
+}) as typeof GameContainerClient;
 
 export default GameContainer; 

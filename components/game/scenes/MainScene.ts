@@ -1,3 +1,5 @@
+'use client'; /* This file is only executed on the client side */
+
 import { Scene } from 'phaser';
 import { loadAsepriteSheet, createAnimationsFromAseprite } from '@/lib/utils/aseprite';
 import { loadTilemap, addCollision, MapLayers } from '@/lib/utils/mapLoader';
@@ -450,6 +452,9 @@ export default class MainScene extends Scene {
     this.physics.world.defaults.debugShowVelocity = false;
     this.physics.world.defaults.bodyDebugColor = 0x00000000; // Transparent
     
+    // Set background color to match the level scenes
+    this.cameras.main.setBackgroundColor('#2B2A3D');
+    
     // Get game data from registry if available
     if (this.registry.has('gameData')) {
       this.gameData = this.registry.get('gameData');
@@ -502,7 +507,7 @@ export default class MainScene extends Scene {
     // Set up camera to follow player with improved damping
     if (this.player) {
       this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
-      this.cameras.main.setZoom(1.2); // Slightly zoomed in for detail
+      this.cameras.main.setZoom(1); // Zoomed out for a wider view
       
       // Set camera bounds based on the map
       if (this.map) {
@@ -721,8 +726,11 @@ export default class MainScene extends Scene {
     // Set up world boundaries
     this.physics.world.setBounds(0, 0, 1200, 900);
     
-    // Base layer - grass or ground
-    this.add.rectangle(0, 0, 1200, 900, 0x80A048).setOrigin(0, 0);
+    // Set the background color
+    this.cameras.main.setBackgroundColor('#2B2A3D');
+    
+    // Base layer - floor 
+    this.add.rectangle(600, 450, 720, 720, 0x80A048).setOrigin(0.5);
     
     // Add some streets
     this.add.rectangle(600, 500, 600, 80, 0x505050).setOrigin(0.5);

@@ -14,7 +14,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   sidebar,
 }) => {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#2B2A3D' }}>
       {/* Header - optional */}
       {header && (
         <header className="w-full p-4 bg-primary-500 text-ui-text shadow-md">
@@ -26,14 +26,14 @@ const GameLayout: React.FC<GameLayoutProps> = ({
       <main className="flex flex-1 overflow-hidden">
         {/* Game container */}
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-4xl h-auto aspect-[4/3] bg-ui-bg shadow-xl rounded-lg overflow-hidden">
+          <div className="w-full max-w-4xl h-auto aspect-[4/3] shadow-xl rounded-lg overflow-hidden" style={{ backgroundColor: '#2B2A3D' }}>
             {children}
           </div>
         </div>
 
         {/* Sidebar - optional */}
         {sidebar && (
-          <aside className="w-64 p-4 bg-ui-bg text-ui-text shadow-inner">
+          <aside className="w-64 p-4 text-ui-text shadow-inner" style={{ backgroundColor: '#2B2A3D' }}>
             {sidebar}
           </aside>
         )}

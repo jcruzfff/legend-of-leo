@@ -3,8 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useGameState } from '@/lib/contexts/GameContext';
 import GameContainer from './GameContainer';
+import { SceneKeys } from '@/lib/game/scenes';
 
-export default function StartScreen() {
+interface StartScreenProps {
+  initialScene?: string;
+}
+
+export default function StartScreen({ initialScene = SceneKeys.Level1 }: StartScreenProps) {
   const [screenState, setScreenState] = useState<'start' | 'confirm' | 'playing'>('start');
   const [hasSavedGame, setHasSavedGame] = useState(false);
   const [isNewGame, setIsNewGame] = useState(false);
@@ -70,13 +75,13 @@ export default function StartScreen() {
   
   // If the game is started, show the game container
   if (screenState === 'playing') {
-    return <GameContainer isNewGame={isNewGame} />;
+    return <GameContainer isNewGame={isNewGame} initialScene={initialScene} />;
   }
   
   // Show confirmation screen
   if (screenState === 'confirm') {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full bg-ui-bg text-ui-text">
+      <div className="flex flex-col items-center justify-center w-full h-full text-ui-text" style={{ backgroundColor: '#2B2A3D' }}>
         <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
           <h2 className="text-2xl font-bold mb-4 text-white">Start New Game?</h2>
           <p className="mb-6 text-white">
@@ -105,7 +110,7 @@ export default function StartScreen() {
   
   // Show start screen
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full bg-ui-bg text-ui-text">
+    <div className="flex flex-col items-center justify-center w-full h-full text-ui-text" style={{ backgroundColor: '#2B2A3D' }}>
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold mb-2 text-white">Legend of Leo</h1>
         <p className="text-lg text-white">An Aleo Blockchain Learning Adventure</p>

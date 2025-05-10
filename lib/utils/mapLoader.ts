@@ -1,124 +1,127 @@
-import { Scene, Tilemaps } from 'phaser';
+'use client'; /* This file is only executed on the client side */
+
+import { Scene } from 'phaser';
 
 /**
- * Object containing layers for easy access
+ * Interface for storing map layers for easy access
  */
 export interface MapLayers {
-  [key: string]: Tilemaps.TilemapLayer;
+  [key: string]: Phaser.Tilemaps.TilemapLayer;
 }
 
 /**
- * Load a tilemap with all its layers
+ * Load a tilemap and create layers
  * 
- * @param scene The scene to load the map into
- * @param key The key of the tilemap JSON file
- * @param layerNames Array of layer names to load
- * @param collisionLayers Array of layer names that should have collision
- * @returns Object with map and layers
+ * @param scene The current Phaser scene
+ * @param key The key of the tilemap in the cache
+ * @param layerNames The names of the layers to create
+ * @param collisionLayers Names of layers that should have collision enabled
+ * @returns The created tilemap and layers
  */
 export function loadTilemap(
   scene: Scene,
   key: string,
   layerNames: string[],
   collisionLayers: string[] = []
-): { map: Tilemaps.Tilemap; layers: MapLayers } {
-  // Create the map
-  const map = scene.make.tilemap({ key });
-  
-  // Check if map loaded
-  if (!map) {
-    throw new Error(`Failed to create tilemap with key: ${key}`);
-  }
-  
-  // Log map details for debugging
-  console.log(`Map created: ${map.width}x${map.height} tiles, ${map.widthInPixels}x${map.heightInPixels}px`);
-  console.log(`Map has ${map.layers.length} layers and ${map.tilesets.length} tilesets`);
-  
+): { map: Phaser.Tilemaps.Tilemap, layers: MapLayers } {
   try {
-    // Get information about the tilesets in the Tiled map
-    const tilesets: Tilemaps.Tileset[] = [];
+    // Load the tilemap
+    const map = scene.make.tilemap({ key });
     
-    // Add all tilesets from the map
-    map.tilesets.forEach(tilesetData => {
-      const tilesetName = tilesetData.name;
-      const imageKey = tilesetName; // The key should match the name in the Tiled map
-      
-      console.log(`Adding tileset: ${tilesetName} with image key: ${imageKey}`);
-      
-      const tileset = map.addTilesetImage(tilesetName, imageKey);
-      if (tileset) {
-        tilesets.push(tileset);
-      } else {
-        console.warn(`Failed to add tileset: ${tilesetName}`);
+    // Get the tileset(s) - this assumes the tileset name in Tiled matches the image key
+    const tilesets: Phaser.Tilemaps.Tileset[] = [];
+    
+    // Try to add each potential tileset in the map
+    map.tilesets.forEach(tileset => {
+      try {
+        const addedTileset = map.addTilesetImage(tileset.name, tileset.name);
+        if (addedTileset) {
+          tilesets.push(addedTileset);
+        }
+      } catch (e) {
+        console.warn(`Failed to add tileset ${tileset.name}:`, e);
       }
     });
     
+    // If we couldn't add any tilesets, try using a default tileset
     if (tilesets.length === 0) {
-      throw new Error('No tilesets could be loaded for the map');
+      if (scene.textures.exists('floor')) {
+        const tileset = map.addTilesetImage('floor', 'floor');
+        if (tileset) tilesets.push(tileset);
+      }
+      
+      if (scene.textures.exists('wall')) {
+        const tileset = map.addTilesetImage('wall', 'wall');
+        if (tileset) tilesets.push(tileset);
+      }
     }
     
-    // Create the layers
+    // If we still don't have any tilesets, throw an error
+    if (tilesets.length === 0) {
+      throw new Error('No valid tilesets found for map');
+    }
+    
+    // Create all the layers
     const layers: MapLayers = {};
     
     layerNames.forEach(layerName => {
-      // Check if layer exists in map
-      if (!map.getLayer(layerName)) {
-        console.warn(`Layer "${layerName}" not found in tilemap`);
-        return;
-      }
-      
-      // Create the layer with all tilesets
-      const layer = map.createLayer(layerName, tilesets, 0, 0);
-      if (layer) {
-        layers[layerName] = layer;
-        
-        // Set up collision for this layer if needed
-        if (collisionLayers.includes(layerName)) {
-          // Try property-based collision first
-          map.setCollisionByProperty({ collides: true }, true, false, layerName);
+      try {
+        const layer = map.createLayer(layerName, tilesets);
+        if (layer) {
+          layers[layerName] = layer;
           
-          // Fallback to using non-zero tiles if no properties set
-          const hasCollisionTiles = layer.filterTiles(tile => tile.collides).length > 0;
-          if (!hasCollisionTiles) {
-            map.setCollisionByExclusion([-1], true, layerName);
+          // Enable collision for this layer if it's in the collision layers list
+          if (collisionLayers.includes(layerName)) {
+            layer.setCollisionByExclusion([-1]);
           }
+        } else {
+          console.warn(`Layer '${layerName}' not found in map`);
         }
-      } else {
-        console.warn(`Failed to create layer: ${layerName}`);
+      } catch (e) {
+        console.warn(`Failed to create layer ${layerName}:`, e);
       }
     });
     
     return { map, layers };
   } catch (error) {
     console.error('Error loading tilemap:', error);
-    throw error;
+    
+    // Create an empty tilemap as fallback
+    const fallbackMap = scene.make.tilemap({
+      tileWidth: 48,
+      tileHeight: 48,
+      width: 20,
+      height: 15
+    });
+    
+    // Create empty layers
+    const fallbackLayers: MapLayers = {};
+    
+    // Return the fallback map and layers
+    return { map: fallbackMap, layers: fallbackLayers };
   }
 }
 
 /**
- * Add collision between an object and tilemap layers
+ * Add collision between a sprite and tilemap layers
  * 
- * @param scene The scene containing the physics
- * @param object The game object to collide with layers
- * @param layers Object containing the tilemap layers
- * @param layerNames Names of layers to add collision with
- * @param callback Optional collision callback
+ * @param scene The current Phaser scene
+ * @param sprite The sprite to add collision for
+ * @param layers The map layers
+ * @param collisionLayerNames Names of layers that should collide with the sprite
  */
 export function addCollision(
   scene: Scene,
-  object: Phaser.Types.Physics.Arcade.ArcadeColliderType,
+  sprite: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
   layers: MapLayers,
-  layerNames: string[],
-  callback?: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback
+  collisionLayerNames: string[]
 ): void {
-  layerNames.forEach(layerName => {
+  collisionLayerNames.forEach(layerName => {
     const layer = layers[layerName];
     if (layer) {
-      if (callback) {
-        scene.physics.add.collider(object, layer, callback);
-      } else {
-        scene.physics.add.collider(object, layer);
-      }
+      scene.physics.add.collider(sprite, layer);
+    } else {
+      console.warn(`Layer '${layerName}' not found for collision`);
     }
   });
 } 

@@ -1,3 +1,5 @@
+'use client'; /* This file is only executed on the client side */
+
 /**
  * Sprite sheet utilities for Phaser integration
  * 
@@ -12,46 +14,43 @@
 import { Scene } from 'phaser';
 
 /**
- * Interface for Aseprite JSON tag data (animation sequences)
+ * Interface for Aseprite animation tag data
  */
 interface AsepriteTag {
   name: string;
   from: number;
   to: number;
-  direction: 'forward' | 'reverse' | 'pingpong';
+  direction: string;
 }
 
 /**
- * Interface for Aseprite JSON frame data
- */
-interface AsepriteFrame {
-  frame: { x: number; y: number; w: number; h: number };
-  duration: number;
-}
-
-/**
- * Interface for Aseprite JSON export format
+ * Interface for Aseprite JSON data
  */
 interface AsepriteData {
-  frames: Record<string, AsepriteFrame>;
+  frames: {
+    [key: string]: {
+      frame: {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+      };
+      duration: number;
+    };
+  };
   meta: {
-    app: string;
-    version: string;
-    image: string;
-    format: string;
-    size: { w: number; h: number };
-    scale: string;
     frameTags: AsepriteTag[];
   };
 }
 
 /**
- * Load Aseprite sprite sheet into a Phaser scene
+ * Load an Aseprite spritesheet
  * 
- * @param scene - The Phaser scene to load the sprite sheet into
- * @param key - The key to identify the sprite sheet
- * @param imagePath - Path to the sprite sheet image
- * @param jsonPath - Path to the Aseprite JSON file
+ * @param scene The current Phaser scene
+ * @param key The key to use for the spritesheet
+ * @param imagePath Path to the spritesheet image
+ * @param jsonPath Path to the Aseprite JSON data
+ * @returns The loaded spritesheet
  */
 export function loadAsepriteSheet(
   scene: Scene,
@@ -59,60 +58,76 @@ export function loadAsepriteSheet(
   imagePath: string,
   jsonPath: string
 ): void {
-  scene.load.atlas(key, imagePath, jsonPath);
+  // Load JSON data
+  scene.load.json(`${key}-json`, jsonPath);
+  
+  // Load image
+  scene.load.image(key, imagePath);
 }
 
 /**
- * Create animations from Aseprite sprite sheet data
+ * Create animations from Aseprite JSON data
  * 
- * @param scene - The Phaser scene to create animations in
- * @param textureKey - The key for the loaded sprite sheet texture
- * @param animationSpeed - Default animation speed (frames per second)
- * @param repeat - Whether animations should repeat (-1 for infinite)
- * @returns Object mapping animation names to their keys
+ * @param scene The current Phaser scene
+ * @param key The key of the spritesheet
+ * @param frameRate The frame rate to use (defaults to 10)
+ * @returns A record of animation keys mapped to their names
  */
 export function createAnimationsFromAseprite(
   scene: Scene,
-  textureKey: string,
-  animationSpeed: number = 10,
-  repeat: number = -1
+  key: string,
+  frameRate: number = 10
 ): Record<string, string> {
-  // Try to access the JSON data
-  const json = scene.cache.json.get(textureKey) as AsepriteData;
-  
-  if (!json || !json.meta || !json.meta.frameTags) {
-    console.error(`No Aseprite data found for key: ${textureKey}`);
-    return {};
-  }
-  
-  const animations: Record<string, string> = {};
-  
-  // Process each animation tag
-  json.meta.frameTags.forEach((tag) => {
-    const animKey = `${textureKey}_${tag.name}`;
-    const frameNames = [];
+  try {
+    // Get the JSON data
+    const jsonKey = `${key}-json`;
     
-    // Get the frame names for this animation
-    for (let i = tag.from; i <= tag.to; i++) {
-      const frameName = Object.keys(json.frames)[i];
-      if (frameName) {
-        frameNames.push({ key: textureKey, frame: frameName });
-      }
+    if (!scene.cache.json.exists(jsonKey)) {
+      console.error(`JSON data for ${key} not found.`);
+      return {};
     }
     
-    // Create the animation with the appropriate direction
-    scene.anims.create({
-      key: animKey,
-      frames: frameNames,
-      frameRate: animationSpeed,
-      repeat: repeat,
-      yoyo: tag.direction === 'pingpong'
-    });
+    const data = scene.cache.json.get(jsonKey) as AsepriteData;
+    const animKeys: Record<string, string> = {};
     
-    animations[tag.name] = animKey;
-  });
-  
-  return animations;
+    // Process each tag and create an animation
+    if (data.meta && data.meta.frameTags) {
+      data.meta.frameTags.forEach((tag) => {
+        // Create a frame array for this tag
+        const frames = [];
+        
+        // Calculate the number of frames in the spritesheet
+        const frameCount = tag.to - tag.from + 1;
+        
+        // Create frames based on the tag data
+        for (let i = 0; i < frameCount; i++) {
+          const frameIndex = tag.from + i;
+          frames.push({ key, frame: frameIndex });
+        }
+        
+        // Animation key in the format "key_tagName"
+        const animKey = `${key}_${tag.name}`;
+        
+        // Create the animation
+        scene.anims.create({
+          key: animKey,
+          frames,
+          frameRate,
+          repeat: tag.direction === 'pingpong' ? -1 : -1, // Loop indefinitely
+        });
+        
+        // Store the animation key
+        animKeys[tag.name] = animKey;
+      });
+    } else {
+      console.warn(`No frame tags found in Aseprite data for ${key}`);
+    }
+    
+    return animKeys;
+  } catch (error) {
+    console.error('Error creating animations from Aseprite data:', error);
+    return {};
+  }
 }
 
 /**
