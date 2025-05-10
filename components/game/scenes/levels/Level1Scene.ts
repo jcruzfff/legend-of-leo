@@ -1,7 +1,6 @@
 'use client'; /* This file is only executed on the client side */
 
 import { Scene } from 'phaser';
-import { loadAsepriteSheet, createAnimationsFromAseprite } from '@/lib/utils/aseprite';
 import { loadTilemap, addCollision, MapLayers } from '@/lib/utils/mapLoader';
 import Player from '@/lib/classes/Player';
 
@@ -52,14 +51,24 @@ export default class Level1Scene extends Scene {
     this.load.image('wall', '/assets/maps/wall.png');
     
     // Load custom wall assets
-    this.load.image('left-wall', '/assets/maps/left-wall-level-one.png');
-    this.load.image('right-wall', '/assets/maps/right-wall-level-one.png');
+
+    this.load.image('backwall', '/assets/maps/backwall.png');
+    
+    // Load border tiles
+    this.load.image('top-border', '/assets/maps/top-border.png');
+    this.load.image('left-border', '/assets/maps/left-border.png');
+    this.load.image('right-border', '/assets/maps/right-border.png');
+    this.load.image('bottom-border', '/assets/maps/bottom-border.png');
+    this.load.image('left-t-corner-border', '/assets/maps/left-t-corner-border.png');
+    this.load.image('right-t-corner-border', '/assets/maps/right-t-corner-border.png');
+    this.load.image('left-b-corner-border', '/assets/maps/left-b-corner-border.png');
+    this.load.image('right-b-corner-border', '/assets/maps/right-b-corner-border.png');
     
     // Load game level assets
     this.load.image('guard', '/assets/maps/guard-l1.png');
-    this.load.image('computer', '/assets/maps/computer-l1.png');
-    this.load.image('tower', '/assets/maps/tower-l1.png');
-    this.load.image('couch', '/assets/maps/couch-l1.png');
+    this.load.image('computer', '/assets/maps/computer-L1.png');
+    this.load.image('tower', '/assets/maps/tower-L1.png');
+    this.load.image('couch', '/assets/maps/couch-L1.png');
     
     // Create placeholder images for objects that don't exist yet
     this.createPlaceholderTiles(['desk']);
@@ -157,8 +166,8 @@ export default class Level1Scene extends Scene {
       const { map, layers } = loadTilemap(
         this,
         'level1',
-        ['Floor', 'Walls', 'Objects'],
-        ['Walls']
+        ['Floor', 'Backwall', 'Objects', 'Collision'],
+        ['Collision'] // Only use the Collision layer for collisions
       );
       
       this.map = map;
@@ -185,9 +194,9 @@ export default class Level1Scene extends Scene {
     const startY = 48 * 8; // Near the bottom of the map
     this.player = new Player(this, startX, startY);
     
-    // Add collision with walls
+    // Add collision with the Collision layer
     if (this.player && this.layers) {
-      addCollision(this, this.player.sprite, this.layers, ['Walls']);
+      addCollision(this, this.player.sprite, this.layers, ['Collision']);
     }
     
     // Set up input
@@ -348,47 +357,51 @@ export default class Level1Scene extends Scene {
    * Extract NPCs from the Objects layer and make them interactive
    */
   createNPCs() {
-    // If we have a valid map and Objects layer
-    if (this.map && this.layers && this.layers['Objects']) {
-      // Find guard tiles in the Objects layer
-      const objectsLayer = this.layers['Objects'];
+    // First, clean up any existing guard NPCs to avoid duplicates
+    if (this.guardNPC) {
+      this.guardNPC.destroy();
+      // Remove from interactive objects array if it exists
+      const index = this.interactiveObjects.findIndex(obj => obj === this.guardNPC);
+      if (index !== -1) {
+        this.interactiveObjects.splice(index, 1);
+      }
+      this.guardNPC = undefined;
+    }
+    
+    // Clear any other guard-like sprites that might exist
+    this.children.list.forEach(child => {
+      if ('type' in child && 
+          (child as Phaser.GameObjects.Sprite).type === 'Sprite' && 
+          (child as Phaser.GameObjects.Sprite).texture && 
+          (child as Phaser.GameObjects.Sprite).texture.key === 'guard') {
+        (child as Phaser.GameObjects.Sprite).destroy();
+      }
+    });
+    
+    // Direct approach - create the guard at specific position from the map data
+    try {
+      // Define where the guard should be based on the map layout
+      // Using the top area where the guard is placed in the tilemap (row 1, column 6)
+      const guardX = 6 * 48 + 24; // Column 6 (0-indexed), centered in tile
+      const guardY = 3 * 48 + 24; // Row 1 (0-indexed), centered in tile
       
-      // Find tiles with the guard tile ID (firstgid + 3 for guard in tileset)
-      const guardTileId = 4; // Based on our tilemap JSON
+      console.log(`Creating guard NPC at position: (${guardX}, ${guardY})`);
       
-      // Get all guard tiles
-      const guardTiles = objectsLayer.filterTiles(tile => tile.index === guardTileId);
+      // Create the guard sprite
+      this.guardNPC = this.add.sprite(guardX, guardY, 'guard');
       
-      guardTiles.forEach(tile => {
-        // Convert tile position to world coordinates
-        const x = tile.pixelX + (tile.width / 2);
-        const y = tile.pixelY + (tile.height / 2);
-        
-        // Clear the tile from the map to avoid duplicates
-        objectsLayer.removeTileAt(tile.x, tile.y);
-        
-        // Create guard NPC at this position
-        this.guardNPC = this.add.sprite(x, y, 'guard');
-        
-        // Make the guard interactive
-        this.guardNPC.setData('interactive', true);
-        this.guardNPC.setData('onInteract', () => {
-          this.showGuardDialogue();
-        });
-        
-        // Add to interactive objects array
-        this.interactiveObjects.push(this.guardNPC);
+      // Make the guard interactive
+      this.guardNPC.setData('interactive', true);
+      this.guardNPC.setData('onInteract', () => {
+        this.showGuardDialogue();
       });
       
-      console.log(`Created ${guardTiles.length} guard NPCs from tilemap`);
+      // Add to interactive objects array
+      this.interactiveObjects.push(this.guardNPC);
       
-      // If no guards were found in the map, create one at the default position
-      if (guardTiles.length === 0) {
-        this.createGuardNPC();
-      }
-    } else {
-      // Fallback to creating the guard at a hard-coded position
-      this.createGuardNPC();
+      console.log('Successfully created guard NPC');
+    } catch (error) {
+      console.error('Error creating guard NPC:', error);
     }
   }
   
@@ -635,29 +648,6 @@ export default class Level1Scene extends Scene {
         onInteract();
       }
     }
-  }
-
-  /**
-   * Create the guard NPC at the doorway (fallback method if not defined in tilemap)
-   */
-  createGuardNPC() {
-    // Position the guard near the exit at the top
-    const doorX = 48 * 6;
-    const doorY = 48 * 1; // Near the top exit
-    
-    // Create a placeholder NPC
-    this.guardNPC = this.add.sprite(doorX, doorY, 'guard');
-    
-    // Make the guard interactive
-    this.guardNPC.setData('interactive', true);
-    this.guardNPC.setData('onInteract', () => {
-      this.showGuardDialogue();
-    });
-    
-    // Add to interactive objects array
-    this.interactiveObjects.push(this.guardNPC);
-    
-    console.log('Created fallback guard NPC');
   }
 
   update() {
