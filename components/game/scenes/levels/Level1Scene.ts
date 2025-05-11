@@ -21,6 +21,10 @@ export default class Level1Scene extends Scene {
   private interactionIndicator?: Phaser.GameObjects.Sprite;
   private nearbyObject?: Phaser.GameObjects.GameObject;
   private guardNPC?: Phaser.GameObjects.Sprite;
+  private gate?: Phaser.Physics.Arcade.Sprite;
+  private exitGate?: Phaser.Physics.Arcade.Sprite;
+  private keycard?: Phaser.GameObjects.Sprite;
+  private hasKeycard: boolean = false;
 
   constructor() {
     super({ key: 'Level1Scene' });
@@ -51,8 +55,19 @@ export default class Level1Scene extends Scene {
     this.load.image('wall', '/assets/maps/wall.png');
     
     // Load custom wall assets
-
     this.load.image('backwall', '/assets/maps/backwall.png');
+    
+    // Load silver gate as a regular image instead of a spritesheet
+    this.load.image('silver-gate', '/assets/sprites/silver-gate.png');
+    
+    // Load blue gate as a spritesheet with seven frames
+    this.load.spritesheet('blue-gate', '/assets/sprites/blue-gate.png', {
+      frameWidth: 192,  // Each frame is 192px wide
+      frameHeight: 93,  // Height from the texture
+      spacing: 0,
+      margin: 0,
+      endFrame: 6 // Load all 7 frames (0-6)
+    });
     
     // Load border tiles
     this.load.image('top-border', '/assets/maps/top-border.png');
@@ -63,7 +78,12 @@ export default class Level1Scene extends Scene {
     this.load.image('right-t-corner-border', '/assets/maps/right-t-corner-border.png');
     this.load.image('left-b-corner-border', '/assets/maps/left-b-corner-border.png');
     this.load.image('right-b-corner-border', '/assets/maps/right-b-corner-border.png');
-    
+    this.load.image('left-t-edge-corner', '/assets/maps/left-t-edge-corner.png');
+    this.load.image('right-t-edge-corner', '/assets/maps/right-t-edge-corner.png');
+    this.load.image('left-b-edge-corner', '/assets/maps/left-b-edge-corner.png');
+    this.load.image('right-b-edge-corner', '/assets/maps/right-b-edge-corner.png');
+    this.load.image('backwall-keycard', '/assets/maps/backwall-keycard.png');
+    this.load.image('backwall-exit', '/assets/maps/backwall-exit.png');
     // Load game level assets
     this.load.image('guard', '/assets/maps/guard-l1.png');
     this.load.image('computer', '/assets/maps/computer-L1.png');
@@ -189,10 +209,13 @@ export default class Level1Scene extends Scene {
       this.createLevel();
     }
     
-    // Create player at starting position for level1
-    const startX = 48 * 7; // Center of the floor horizontally
-    const startY = 48 * 8; // Near the bottom of the map
+    // Create player at starting position on the couch in Room A, facing left
+    // Couch is at tile X=13, Y=16 (0-indexed map tiles)
+    const startX = (13 * 48) + (48 / 2); // Center of tile 13
+    const startY = (16.5 * 48) + (48 / 2); // Center of tile 16, should place player visually on the couch
     this.player = new Player(this, startX, startY);
+    // Or, if you have specific facing animations:
+     this.player.sprite.anims.play('player-idle-left', true);
     
     // Add collision with the Collision layer
     if (this.player && this.layers) {
@@ -221,8 +244,11 @@ export default class Level1Scene extends Scene {
       this.cameras.main.setDeadzone(100, 100);
     }
     
-    // Create the guard NPC at the doorway - now using map data
+    // Create the guard NPC and silver gate
     this.createNPCs();
+    
+    // Create the blue exit gate at the top of area B
+    this.createExitGate();
   }
   
   /**
@@ -368,6 +394,12 @@ export default class Level1Scene extends Scene {
       this.guardNPC = undefined;
     }
     
+    // Clear any existing gate
+    if (this.gate) {
+      this.gate.destroy();
+      this.gate = undefined;
+    }
+    
     // Clear any other guard-like sprites that might exist
     this.children.list.forEach(child => {
       if ('type' in child && 
@@ -381,11 +413,13 @@ export default class Level1Scene extends Scene {
     // Direct approach - create the guard at specific position from the map data
     try {
       // Define where the guard should be based on the map layout
-      // Using the top area where the guard is placed in the tilemap (row 1, column 6)
+      // Guard is in Room A, 3rd row from its top, 7th column from its left.
+      // Room A starts at map row 10. So guard is at map row (10 + 2) = 12.
+      // Guard is at column index 6.
       const guardX = 6 * 48 + 24; // Column 6 (0-indexed), centered in tile
-      const guardY = 3 * 48 + 24; // Row 1 (0-indexed), centered in tile
+      const guardY = 13 * 48 + 24; // Map Row 12 (0-indexed), centered in tile
       
-      console.log(`Creating guard NPC at position: (${guardX}, ${guardY})`);
+      console.log(`Creating guard NPC at new position: (${guardX}, ${guardY})`);
       
       // Create the guard sprite
       this.guardNPC = this.add.sprite(guardX, guardY, 'guard');
@@ -398,6 +432,70 @@ export default class Level1Scene extends Scene {
       
       // Add to interactive objects array
       this.interactiveObjects.push(this.guardNPC);
+      
+      // Create the gate above the guard
+      const gateX = guardX + 120; // One tile to the right of guard
+      const gateY = guardY - 96; // Three tiles above the guard
+      
+      try {
+        // Create gate sprite with physics body to block player
+        this.gate = this.physics.add.sprite(gateX, gateY, 'silver-gate');
+        
+        // If silver-gate.png doesn't exist, create a placeholder
+        if (!this.textures.exists('silver-gate')) {
+          console.log('Creating placeholder for silver-gate');
+          const graphics = this.make.graphics({ x: 0, y: 0 });
+          graphics.fillStyle(0xC0C0C0); // Silver color
+          graphics.fillRect(0, 0, 144, 144);
+          graphics.lineStyle(2, 0x808080);
+          graphics.strokeRect(0, 0, 144, 144);
+          
+          // Add gate-like details
+          graphics.lineStyle(1, 0x808080);
+          for (let i = 0; i < 72; i += 6) {
+            graphics.beginPath();
+            graphics.moveTo(i, 0);
+            graphics.lineTo(i, 144);
+            graphics.closePath();
+            graphics.strokePath();
+          }
+          
+          graphics.generateTexture('silver-gate', 144, 144);
+          this.gate.setTexture('silver-gate');
+        }
+        
+        // Get texture dimensions for proper cropping
+        const texture = this.textures.get('silver-gate');
+        const textureWidth = texture.source[0].width;
+        const textureHeight = texture.source[0].height;
+        
+        // The texture contains two frames side by side - we want to show only the first frame (left half)
+        const frameWidth = textureWidth / 2;
+        
+        // Crop to show only the left half (closed gate)
+        this.gate.setCrop(0, 0, frameWidth, textureHeight);
+        
+        // Store the frame dimensions for the animation
+        this.gate.setData('frameWidth', frameWidth);
+        this.gate.setData('textureWidth', textureWidth);
+        this.gate.setData('textureHeight', textureHeight);
+        
+        // Set the physics body to match the visible portion
+        this.gate.setSize(frameWidth, textureHeight);
+        
+        // Center the origin for proper positioning
+        this.gate.setOrigin(0.5, 0.5);
+        
+        // Make the gate immovable and add collision with player
+        this.gate.setImmovable(true);
+        if (this.player) {
+          this.physics.add.collider(this.player.sprite, this.gate);
+        }
+        
+        console.log('Successfully created gate with proper cropping');
+      } catch (error) {
+        console.error('Error creating gate:', error);
+      }
       
       console.log('Successfully created guard NPC');
     } catch (error) {
@@ -467,12 +565,155 @@ export default class Level1Scene extends Scene {
     // Group all dialogue elements
     const dialogueGroup = this.add.group([dialogueBox, text, continueButton, buttonText]);
     
-    // Handle continue button click
-    continueButton.on('pointerdown', () => {
-      // For now, just destroy the dialogue
-      // Later this will trigger the quiz/learning interaction
+    // Function to handle dialogue completion
+    const completeDialogue = () => {
+      // Open the gate when player clicks Continue or presses Enter
+      if (this.gate) {
+        // Disable the gate's collision body to allow the player to pass
+        if (this.gate.body) {
+          this.gate.body.enable = false;
+        }
+        
+        try {
+          // Get stored frame dimensions
+          const frameWidth = this.gate.getData('frameWidth');
+          const textureHeight = this.gate.getData('textureHeight');
+          
+          // Switch to the second frame by cropping the right half of the sprite sheet
+          if (frameWidth && textureHeight) {
+            // Simply change the crop to show the right half of the texture (second frame)
+            this.gate.setCrop(frameWidth, 0, frameWidth, textureHeight);
+            
+            // Adjust the position so the second frame appears exactly where the first frame was
+            // We need to shift left by frameWidth to compensate for showing the right half
+            this.gate.x -= frameWidth;
+          }
+        } catch (error) {
+          console.error('Error opening gate:', error);
+        }
+        
+        // Show a message about the gate opening
+        const gateText = this.add.text(
+          width / 2,
+          height / 2,
+          "The gate has opened! You can now proceed.",
+          {
+            fontSize: '18px',
+            color: '#FFFFFF',
+            backgroundColor: '#00000080',
+            padding: { x: 20, y: 10 },
+            align: 'center'
+          }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+        
+        // Remove text after a few seconds
+        this.time.delayedCall(3000, () => {
+          gateText.destroy();
+        });
+      }
+      
+      // Remove the keyboard listener
+      this.input.keyboard?.off('keydown-ENTER');
+      
+      // Destroy the dialogue
       dialogueGroup.destroy(true);
+    };
+    
+    // Handle continue button click
+    continueButton.on('pointerdown', completeDialogue);
+    
+    // Add keyboard support for Enter key
+    this.input.keyboard?.on('keydown-ENTER', completeDialogue);
+  }
+  
+  /**
+   * Collect the keycard when player interacts with it
+   */
+  collectKeycard() {
+    if (this.hasKeycard) {
+      console.log('Keycard already collected, skipping collection');
+      return;
+    }
+    
+    console.log('Inserting keycard...');
+    this.hasKeycard = true;
+    
+    // Create a visual and text feedback
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Add a flash effect at the keycard location
+    if (this.keycard) {
+      const flash = this.add.sprite(this.keycard.x, this.keycard.y, 'backwall-keycard');
+      flash.setTint(0x00ff00);
+      flash.setAlpha(0.5);
+      
+      this.tweens.add({
+        targets: flash,
+        alpha: 0,
+        scale: 1.5,
+        duration: 500,
+        onComplete: () => flash.destroy()
+      });
+    }
+    
+    // Show insertion message
+    const keycardText = this.add.text(
+      width / 2,
+      height / 2,
+      "Keycard inserted! Gate is opening...",
+      {
+        fontSize: '18px',
+        color: '#FFFFFF',
+        backgroundColor: '#00000080',
+        padding: { x: 20, y: 10 },
+        align: 'center'
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    
+    // Add a subtle bounce animation to the text
+    this.tweens.add({
+      targets: keycardText,
+      y: height / 2 - 10,
+      duration: 200,
+      yoyo: true,
+      ease: 'Bounce'
     });
+    
+    // Remove text after a few seconds
+    this.time.delayedCall(3000, () => {
+      keycardText.destroy();
+    });
+    
+    // Hide or remove the keycard interaction
+    if (this.keycard) {
+      // Fade out the keycard sprite
+      this.tweens.add({
+        targets: this.keycard,
+        alpha: 0,
+        scale: 0,
+        duration: 300,
+        onComplete: () => {
+          this.keycard?.destroy();
+          
+          // Remove from interactive objects array
+          const index = this.interactiveObjects.findIndex(obj => obj === this.keycard);
+          if (index !== -1) {
+            this.interactiveObjects.splice(index, 1);
+          }
+          
+          this.keycard = undefined;
+          console.log('Keycard object removed from scene');
+          
+          // Automatically open the gate after keycard is collected
+          if (this.exitGate) {
+            this.openExitGate();
+          }
+        }
+      });
+    }
+    
+    console.log('Keycard inserted, initiating gate opening sequence');
   }
   
   /**
@@ -481,39 +722,30 @@ export default class Level1Scene extends Scene {
   checkInteractiveObjects() {
     if (!this.player) return;
     
-    // Check if player is near the door/exit area at the top of the map
-    if (this.player.sprite.y < 48 * 3 && 
-        this.player.sprite.x > 5 * 48 && 
-        this.player.sprite.x < 8 * 48) {
-      // Player reached the exit door area at the top of the level
-      console.log('Player reached the exit door');
+    // Check if player is near the exit gate and has the keycard
+    if (this.exitGate && this.hasKeycard && this.exitGate.getData('isLocked')) {
+      const playerBounds = this.player.sprite.getBounds();
+      const gateBounds = this.exitGate.getBounds();
       
-      // Show completion message
-      const width = this.cameras.main.width;
-      const height = this.cameras.main.height;
+      // Add some tolerance to the check to make it easier to trigger
+      gateBounds.x -= 20;
+      gateBounds.width += 40;
       
-      const message = "You completed Level 1! You now understand the importance of privacy.";
+      if (Phaser.Geom.Rectangle.Overlaps(playerBounds, gateBounds)) {
+        console.log('Player is at the exit gate with keycard - opening gate');
+        this.openExitGate();
+      }
+    }
+    
+    // Check if player is touching the open exit gate (for level transition)
+    if (this.exitGate && !this.exitGate.getData('isLocked') && !this.exitGate.getData('transitioning')) {
+      const playerBounds = this.player.sprite.getBounds();
+      const gateBounds = this.exitGate.getBounds();
       
-      const text = this.add.text(
-        width / 2,
-        height / 2,
-        message,
-        {
-          fontSize: '20px',
-          color: '#FFFFFF',
-          backgroundColor: '#000000',
-          padding: { x: 20, y: 10 },
-          align: 'center'
-        }
-      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-      
-      // Remove text after a few seconds
-      this.time.delayedCall(3000, () => {
-        text.destroy();
-      });
-      
-      // Move player back down to prevent continuous triggering
-      this.player.sprite.y += 48;
+      if (Phaser.Geom.Rectangle.Overlaps(playerBounds, gateBounds)) {
+        console.log('Player is going through the open exit gate - transitioning to next level');
+        this.transitionToNextLevel();
+      }
     }
     
     // Original code for finding interactive objects
@@ -596,7 +828,6 @@ export default class Level1Scene extends Scene {
         graphics.fillCircle(16, 16, 8);
         
         graphics.generateTexture('interaction-indicator', 32, 32);
-        this.interactionIndicator.setTexture('interaction-indicator');
       }
       
       // Add a subtle bobbing animation
@@ -618,12 +849,12 @@ export default class Level1Scene extends Scene {
         repeat: -1,
         ease: 'Sine.easeInOut'
       });
-    } 
-    // Otherwise just move it to the new position
-    else {
-      this.interactionIndicator.setVisible(true);
-      this.interactionIndicator.setPosition(x, y);
     }
+    
+    // Set the texture and make visible
+    this.interactionIndicator.setTexture('interaction-indicator');
+    this.interactionIndicator.setVisible(true);
+    this.interactionIndicator.setPosition(x, y);
     
     // Set high depth to ensure it's visible
     this.interactionIndicator.setDepth(200);
@@ -648,6 +879,320 @@ export default class Level1Scene extends Scene {
         onInteract();
       }
     }
+  }
+
+  /**
+   * Create the blue exit gate at the top center of area B
+   */
+  createExitGate() {
+    // Define the position for the exit gate in area B
+    // The exit gate should be placed where the backwall-exit tiles are (row 1, columns 6-8)
+    const tileSize = 48;
+    const exitTileX = 7; // Center between columns 6-8 (0-indexed)
+    const exitTileY = 2; // Row 1 (0-indexed)
+    
+    const gateX = exitTileX * tileSize + (tileSize * 1); // Center between the 3 tiles
+    const gateY = exitTileY * tileSize + (tileSize / 1); // Center in the tile vertically
+    
+    console.log('Creating exit gate at position:', gateX, gateY);
+    
+    try {
+      // Create gate sprite with physics body
+      this.exitGate = this.physics.add.sprite(gateX, gateY, 'blue-gate');
+      
+      // Debug logging for gate properties
+      console.log('Exit gate created:', {
+        visible: this.exitGate.visible,
+        alpha: this.exitGate.alpha,
+        depth: this.exitGate.depth,
+        x: this.exitGate.x,
+        y: this.exitGate.y,
+        texture: this.exitGate.texture.key
+      });
+      
+      // Get texture dimensions for proper cropping
+      const texture = this.textures.get('blue-gate');
+      console.log('Blue gate texture:', {
+        exists: this.textures.exists('blue-gate'),
+        width: texture?.source[0]?.width,
+        height: texture?.source[0]?.height
+      });
+      
+      // The texture contains frames side by side - blue gate has 192px per frame
+      const frameWidth = 192; // Fixed frame width to 192px
+      const textureHeight = texture.source[0].height;
+      
+      // Instead of cropping, set up the sprite's frame configuration
+      this.exitGate.setDisplaySize(frameWidth, textureHeight);
+      
+      // Store the frame dimensions for the animation
+      this.exitGate.setData('frameWidth', frameWidth);
+      this.exitGate.setData('textureHeight', textureHeight);
+      
+      // Set the physics body to match the visible portion
+      this.exitGate.setSize(frameWidth, textureHeight);
+      
+      // Center the origin for proper positioning
+      this.exitGate.setOrigin(0.5, 0.5);
+      
+      // Make the gate immovable and add collision with player
+      this.exitGate.setImmovable(true);
+      if (this.player) {
+        this.physics.add.collider(this.player.sprite, this.exitGate);
+      }
+      
+      // Set a flag to indicate the gate is locked (requires keycard)
+      this.exitGate.setData('isLocked', true);
+      
+      // Make sure the gate is visible and on the correct depth layer
+      this.exitGate.setDepth(5); // Put it above the floor but below other objects
+      this.exitGate.setAlpha(1); // Ensure full visibility
+      
+      // Additional debug logging after setup
+      console.log('Exit gate setup complete:', {
+        frameWidth,
+        textureHeight,
+        displaySize: {
+          width: this.exitGate.displayWidth,
+          height: this.exitGate.displayHeight
+        },
+        physicsBody: this.exitGate.body ? {
+          width: this.exitGate.body.width,
+          height: this.exitGate.body.height
+        } : 'No physics body'
+      });
+      
+    } catch (error) {
+      console.error('Error creating exit gate:', error);
+      // Add more detailed error information
+      if (this.exitGate) {
+        console.log('Exit gate state at error:', {
+          exists: !!this.exitGate,
+          texture: this.exitGate.texture?.key,
+          frame: this.exitGate.frame,
+          visible: this.exitGate.visible,
+          position: { x: this.exitGate.x, y: this.exitGate.y }
+        });
+      }
+    }
+    
+    // Create the keycard interactive object
+    this.createKeycard();
+  }
+  
+  /**
+   * Create the keycard interactive object
+   */
+  createKeycard() {
+    // Position the keycard where the backwall-keycard tile is (row 1, column 10)
+    const tileSize = 48;
+    const keycardTileX = 10;
+    const keycardTileY = 3;
+    
+    const keycardX = keycardTileX * tileSize + (tileSize / 2);
+    const keycardY = keycardTileY * tileSize + (tileSize / 2);
+    
+    console.log('Creating keycard interaction zone at:', keycardX, keycardY);
+    
+    // Create a small sprite for the keycard interaction zone
+    this.keycard = this.add.sprite(keycardX, keycardY, 'backwall-keycard');
+    
+    // Make it semi-visible to show interaction area
+    this.keycard.setAlpha(0.1);
+    
+    // Create a subtle glow effect
+    const glowGraphics = this.add.graphics();
+    glowGraphics.lineStyle(2, 0x00ff00, 0.3);
+    glowGraphics.strokeRect(keycardX - 24, keycardY - 24, 48, 48);
+    
+    // Add a pulsing animation to the glow
+    this.tweens.add({
+      targets: glowGraphics,
+      alpha: { from: 0.3, to: 0 },
+      duration: 1000,
+      yoyo: true,
+      repeat: -1
+    });
+    
+    // Make the keycard interactive
+    this.keycard.setInteractive({ useHandCursor: true });
+    
+    // Add to interactive objects array for player proximity detection
+    this.keycard.setData('interactive', true);
+    this.keycard.setData('onInteract', () => {
+      console.log('Keycard interaction triggered');
+      this.collectKeycard();
+    });
+    
+    // Add to interactive objects array
+    this.interactiveObjects.push(this.keycard);
+    
+    console.log('Keycard interaction zone created with glow effect');
+  }
+
+  /**
+   * Open the exit gate
+   */
+  openExitGate() {
+    if (!this.exitGate) return;
+    
+    // Only open if player has the keycard
+    if (!this.hasKeycard) {
+      console.log('Cannot open exit gate - keycard required');
+      
+      // Show a message that a keycard is needed
+      const width = this.cameras.main.width;
+      const height = this.cameras.main.height;
+      
+      const lockedText = this.add.text(
+        width / 2,
+        height / 2,
+        "The gate is locked. You need a keycard to open it.",
+        {
+          fontSize: '18px',
+          color: '#FFFFFF',
+          backgroundColor: '#00000080',
+          padding: { x: 20, y: 10 },
+          align: 'center'
+        }
+      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+      
+      // Remove text after a few seconds
+      this.time.delayedCall(3000, () => {
+        lockedText.destroy();
+      });
+      
+      return;
+    }
+    
+    // Mark the gate as unlocked
+    this.exitGate.setData('isLocked', false);
+    
+    // Get stored frame dimensions
+    const frameWidth = this.exitGate.getData('frameWidth');
+    const textureHeight = this.exitGate.getData('textureHeight');
+    
+    // Only proceed if we have the dimensions
+    if (!frameWidth || !textureHeight) return;
+    
+    // Disable the collision body to allow player to pass through
+    if (this.exitGate.body) {
+      this.exitGate.body.enable = false;
+    }
+    
+    // Create animation frames for the gate if they don't exist
+    if (!this.anims.exists('blue-gate-open')) {
+      const frames = [];
+      for (let i = 0; i <= 6; i++) {
+        frames.push({ key: 'blue-gate', frame: i });
+      }
+      
+      this.anims.create({
+        key: 'blue-gate-open',
+        frames: frames,
+        frameRate: 12,
+        repeat: 0 // Play once
+      });
+    }
+    
+    // Play the opening animation
+    this.exitGate.play('blue-gate-open');
+    
+    // Show a message about the gate opening
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    const gateText = this.add.text(
+      width / 2,
+      height / 2,
+      "The exit gate has opened! Proceed to the next level.",
+      {
+        fontSize: '18px',
+        color: '#FFFFFF',
+        backgroundColor: '#00000080',
+        padding: { x: 20, y: 10 },
+        align: 'center'
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    
+    // Add a subtle particle effect for emphasis
+    this.addGateOpeningEffect(this.exitGate.x, this.exitGate.y);
+    
+    // Remove text after a few seconds
+    this.time.delayedCall(3000, () => {
+      gateText.destroy();
+    });
+  }
+  
+  /**
+   * Add a particle effect when the gate opens
+   */
+  addGateOpeningEffect(x: number, y: number) {
+    try {
+      // Create a particle emitter for the gate opening effect
+      const particles = this.add.particles(x, y, 'blue-gate', {
+        frame: 0,
+        quantity: 15,
+        lifespan: 1000,
+        scale: { start: 0.05, end: 0 },
+        speed: { min: 50, max: 100 },
+        alpha: { start: 0.7, end: 0 },
+        blendMode: 'ADD',
+        emitting: false
+      });
+      
+      // Emit a burst of particles
+      particles.explode(15);
+      
+      // Add a glowing effect
+      const glow = this.add.sprite(x, y, 'blue-gate');
+      glow.setCrop(0, 0, 192, glow.height); // Use the correct frame width
+      glow.setBlendMode('ADD');
+      glow.setAlpha(0.3);
+      
+      // Animate the glow
+      this.tweens.add({
+        targets: glow,
+        alpha: 0,
+        duration: 800,
+        ease: 'Power2',
+        onComplete: () => {
+          glow.destroy();
+        }
+      });
+      
+      // Clean up after particles are done
+      this.time.delayedCall(1500, () => {
+        particles.destroy();
+      });
+    } catch (error) {
+      console.error('Error creating gate opening effect:', error);
+    }
+  }
+  
+  /**
+   * Transition to the next level
+   */
+  transitionToNextLevel() {
+    // Prevent multiple transitions
+    if (this.exitGate?.getData('transitioning')) return;
+    
+    if (this.exitGate) {
+      this.exitGate.setData('transitioning', true);
+    }
+    
+    // Fade out effect
+    this.cameras.main.fade(1000, 0, 0, 0);
+    
+    // Wait for fade to complete then change scene
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      // In a real game, this would transition to the next level
+      // For now, we'll just restart this level
+      this.scene.restart();
+      
+      // Or you could start a new level like this:
+      // this.scene.start('Level2Scene');
+    });
   }
 
   update() {

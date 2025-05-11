@@ -1,0 +1,124 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Sprite Sheet Animation Patterns
+
+## Side-by-Side Frame Animations
+
+When working with sprite sheets that have frames arranged horizontally (side-by-side), follow these patterns to ensure proper rendering and animation:
+
+- **Load As Regular Image**
+  - Load sprite sheets as regular images rather than using the spritesheet loader when frames aren't uniform
+  - This gives you manual control over cropping and frame selection
+  
+  ```typescript
+  // ✅ DO: Load as a regular image for manual cropping
+  this.load.image('silver-gate', '/assets/sprites/silver-gate.png');
+  
+  // ❌ DON'T: Don't use spritesheet loader for images with non-uniform frames
+  this.load.spritesheet('silver-gate', '/assets/sprites/silver-gate.png', {
+    frameWidth: 72, // This can cause issues with non-uniform frames
+    frameHeight: 144
+  });
+  ```
+
+- **Manage Frames with Cropping**
+  - Use `setCrop()` to show only the relevant portion of the sprite sheet
+  - Store dimensions using `setData()` for later reference
+  
+  ```typescript
+  // ✅ DO: Calculate frame dimensions and use cropping
+  const texture = this.textures.get('gate-texture');
+  const textureWidth = texture.source[0].width;
+  const frameWidth = textureWidth / 2; // For a 2-frame sprite sheet
+  
+  // Show only the first frame initially
+  gateSprite.setCrop(0, 0, frameWidth, texture.source[0].height);
+  
+  // Store dimensions for animation reference
+  gateSprite.setData('frameWidth', frameWidth);
+  gateSprite.setData('textureHeight', texture.source[0].height);
+  ```
+
+- **Adjust Position When Changing Frames**
+  - When switching to other frames, adjust the object's position to maintain visual continuity
+  - For horizontal sprite sheets, offset the x-position when showing the right portion
+  
+  ```typescript
+  // ✅ DO: Adjust position when showing a different frame
+  // Get frame dimensions from stored data
+  const frameWidth = sprite.getData('frameWidth');
+  const textureHeight = sprite.getData('textureHeight');
+  
+  // Switch to second frame and adjust position
+  sprite.setCrop(frameWidth, 0, frameWidth, textureHeight);
+  sprite.x -= frameWidth; // Move sprite left to compensate
+  ```
+
+- **Adjust Physics Body to Match Visible Area**
+  - Make sure the physics body matches only the visible portion of the sprite
+  - This ensures accurate collision detection
+  
+  ```typescript
+  // ✅ DO: Set physics body to match the visible frame
+  sprite.setSize(frameWidth, textureHeight);
+  
+  // When switching frames, disable physics if needed
+  if (sprite.body) {
+    sprite.body.enable = false; // For objects like gates that should allow passage
+  }
+  ```
+
+## Example Implementation: Silver Gate
+
+The silver-gate.png sprite sheet contains two 144x144 frames side by side. The left frame shows the closed gate, and the right frame shows the open gate. Here's a complete example of how to implement it:
+
+```typescript
+// Loading the asset
+preload() {
+  this.load.image('silver-gate', '/assets/sprites/silver-gate.png');
+}
+
+// Creating the gate
+create() {
+  // Create gate sprite
+  const gate = this.physics.add.sprite(x, y, 'silver-gate');
+  
+  // Get texture dimensions
+  const texture = this.textures.get('silver-gate');
+  const textureWidth = texture.source[0].width;
+  const textureHeight = texture.source[0].height;
+  const frameWidth = textureWidth / 2;
+  
+  // Show only the first frame (closed gate)
+  gate.setCrop(0, 0, frameWidth, textureHeight);
+  
+  // Store dimensions for later
+  gate.setData('frameWidth', frameWidth);
+  gate.setData('textureHeight', textureHeight);
+  
+  // Set physics body to match visible portion
+  gate.setSize(frameWidth, textureHeight);
+}
+
+// Opening the gate
+openGate() {
+  if (this.gate) {
+    // Disable physics to allow player passage
+    if (this.gate.body) {
+      this.gate.body.enable = false;
+    }
+    
+    // Get stored dimensions
+    const frameWidth = this.gate.getData('frameWidth');
+    const textureHeight = this.gate.getData('textureHeight');
+    
+    // Switch to the second frame (open gate)
+    this.gate.setCrop(frameWidth, 0, frameWidth, textureHeight);
+    
+    // Adjust position to maintain visual continuity
+    this.gate.x -= frameWidth;
+  }
+}
