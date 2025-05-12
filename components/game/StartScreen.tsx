@@ -7,10 +7,11 @@ import { SceneKeys } from '@/lib/game/scenes';
 
 interface StartScreenProps {
   initialScene?: string;
+  devModeAutoStart?: boolean;
 }
 
-export default function StartScreen({ initialScene = SceneKeys.Level1 }: StartScreenProps) {
-  const [screenState, setScreenState] = useState<'start' | 'confirm' | 'playing'>('start');
+export default function StartScreen({ initialScene = SceneKeys.Level1, devModeAutoStart = false }: StartScreenProps) {
+  const [screenState, setScreenState] = useState<'start' | 'confirm' | 'playing'>(devModeAutoStart ? 'playing' : 'start');
   const [hasSavedGame, setHasSavedGame] = useState(false);
   const [isNewGame, setIsNewGame] = useState(false);
   const { resetGameState } = useGameState();
@@ -42,6 +43,15 @@ export default function StartScreen({ initialScene = SceneKeys.Level1 }: StartSc
     }
   }, []);
   
+  // Auto-start in development mode
+  useEffect(() => {
+    if (devModeAutoStart) {
+      console.log('Development mode: Auto-starting game');
+      setIsNewGame(false);
+      setScreenState('playing');
+    }
+  }, [devModeAutoStart]);
+
   const handleStartNewGame = () => {
     if (hasSavedGame) {
       // Ask for confirmation before overwriting saved game

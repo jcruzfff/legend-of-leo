@@ -561,6 +561,7 @@ export default class MainScene extends Scene {
         });
       }
     });
+    
   }
   
   /**
@@ -1008,6 +1009,7 @@ export default class MainScene extends Scene {
     }
   }
 
+ 
   update() {
     if (!this.player || !this.cursors) return;
 

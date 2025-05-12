@@ -25,9 +25,24 @@ export default class Level1Scene extends Scene {
   private exitGate?: Phaser.Physics.Arcade.Sprite;
   private keycard?: Phaser.GameObjects.Sprite;
   private hasKeycard: boolean = false;
+  private gateOpen: boolean = false;
 
   constructor() {
     super({ key: 'Level1Scene' });
+  }
+
+  init() {
+    // Store current scene in localStorage for development mode reload
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('currentScene', this.scene.key);
+      console.log('Current scene saved:', this.scene.key);
+    }
+    
+    // Initialize interactive objects array
+    this.interactiveObjects = [];
+    
+    // Initialize flag for gate status
+    this.gateOpen = false;
   }
 
   preload() {
@@ -552,7 +567,7 @@ export default class Level1Scene extends Scene {
     
     const buttonText = this.add.text(
       width / 2,
-      height - 40,
+      height - 40, 
       'Continue',
       {
         fontSize: '14px',
@@ -1186,12 +1201,8 @@ export default class Level1Scene extends Scene {
     
     // Wait for fade to complete then change scene
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      // In a real game, this would transition to the next level
-      // For now, we'll just restart this level
-      this.scene.restart();
-      
-      // Or you could start a new level like this:
-      // this.scene.start('Level2Scene');
+      // Start Level 2
+      this.scene.start('Level2Scene');
     });
   }
 

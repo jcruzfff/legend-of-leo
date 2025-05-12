@@ -8,6 +8,9 @@
 export const SceneKeys = {
   Main: 'MainScene',
   Level1: 'Level1Scene',
+  Level2: 'Level2Scene',
+  Level3: 'Level3Scene',
+  Level4: 'Level4Scene',
 };
 
 /**
@@ -21,9 +24,15 @@ export function getAllSceneKeys(): string[] {
 export const gameScenes = async () => {
   const MainScene = (await import('@/components/game/scenes/MainScene')).default;
   const Level1Scene = (await import('@/components/game/scenes/levels/Level1Scene')).default;
+  const Level2Scene = (await import('@/components/game/scenes/levels/Level2Scene')).default;
+  const Level3Scene = (await import('@/components/game/scenes/levels/Level3Scene')).default;
+  const Level4Scene = (await import('@/components/game/scenes/levels/Level4Scene')).default;
   
   return [
     MainScene,
     Level1Scene,
+    Level2Scene,
+    Level3Scene,
+    Level4Scene,
   ];
 }; 
