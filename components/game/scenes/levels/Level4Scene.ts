@@ -97,7 +97,13 @@ export default class Level4Scene extends Scene {
     }
 
     if (!textureCheck('concrete-door')) {
-      this.load.image('concrete-door', '/assets/sprites/concrete-door.png');
+      // Load concrete-door as a spritesheet since it has multiple frames for animation
+      this.load.spritesheet('concrete-door', '/assets/sprites/concrete-door.png', {
+        frameWidth: 24,
+        frameHeight: 144,
+        spacing: 0,
+        margin: 0
+      });
     }
 
     // Load border tiles
@@ -856,21 +862,41 @@ export default class Level4Scene extends Scene {
   }
 
   /**
-   * Add the concrete door in the passage between rooms (always visible)
+   * Add the concrete door in the passage between rooms (closed by default)
    */
   addConcreteDoor() {
     const tileSize = 48;
     const doorX = 10 * tileSize;
     const doorY = 8.5 * tileSize;
+    
+    // Create the concrete door sprite
     this.concreteDoor = this.physics.add.sprite(doorX, doorY, 'concrete-door');
-    this.concreteDoor.setDisplaySize(62, 144);
+    this.concreteDoor.setDisplaySize(24, 144);
+    
+    // Set the door to show the first frame (closed position)
+    this.concreteDoor.setFrame(0);
+    
+    // Setup physics body for collision
     const doorBody = this.concreteDoor.body as Phaser.Physics.Arcade.Body | undefined;
     if (doorBody) {
       doorBody.immovable = true;
     }
+    
     this.concreteDoor.setDepth(10);
+    
+    // Add collision with player
     if (this.player) {
       this.physics.add.collider(this.player.sprite, this.concreteDoor);
+    }
+    
+    // Create the door opening animation if it doesn't exist
+    if (!this.anims.exists('concrete-door-open')) {
+      this.anims.create({
+        key: 'concrete-door-open',
+        frames: this.anims.generateFrameNumbers('concrete-door', { start: 0, end: 3 }),
+        frameRate: 8,
+        repeat: 0 // Play once
+      });
     }
   }
 
@@ -892,8 +918,83 @@ export default class Level4Scene extends Scene {
         align: 'center'
       }
     ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    
+    // After a brief delay, show door opening message and animate door
     this.time.delayedCall(2500, () => {
       msg.destroy();
+      this.openConcreteDoor();
+    });
+  }
+  
+  /**
+   * Open the concrete door after interacting with big-screens
+   */
+  openConcreteDoor() {
+    if (!this.concreteDoor || this.doorActive) return;
+    this.doorActive = true;
+    
+    // Display a message about the door opening
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const doorMsg = this.add.text(
+      width / 2,
+      height / 2,
+      "The concrete door is opening!",
+      {
+        fontSize: '18px',
+        color: '#FFFFFF',
+        backgroundColor: '#00000080',
+        padding: { x: 20, y: 10 },
+        align: 'center'
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    
+    // Play the door opening animation
+    this.concreteDoor.play('concrete-door-open');
+    
+    // When the animation completes, disable the collision
+    this.concreteDoor.once('animationcomplete', () => {
+      // Disable the physics body to allow player to pass through
+      if (this.concreteDoor && this.concreteDoor.body) {
+        // Cast to the correct type to access immovable property
+        const doorBody = this.concreteDoor.body as Phaser.Physics.Arcade.Body;
+        doorBody.enable = false;
+      }
+      
+      // Add a subtle particle effect for emphasis
+      if (this.concreteDoor) {
+        this.addDoorOpeningEffect(this.concreteDoor.x, this.concreteDoor.y);
+      }
+      
+      // Remove the message after a brief delay
+      this.time.delayedCall(1000, () => {
+        doorMsg.destroy();
+      });
+    });
+  }
+  
+  /**
+   * Add a particle effect when the door opens
+   */
+  addDoorOpeningEffect(x: number, y: number) {
+    // Create a particle emitter for the door opening effect
+    const particles = this.add.particles(x, y, 'concrete-door', {
+      frame: 0,
+      quantity: 10,
+      lifespan: 800,
+      scale: { start: 0.1, end: 0 },
+      speed: { min: 30, max: 60 },
+      alpha: { start: 0.6, end: 0 },
+      blendMode: 'ADD',
+      emitting: false
+    });
+    
+    // Emit a burst of particles
+    particles.explode(10);
+    
+    // Clean up after particles are done
+    this.time.delayedCall(1000, () => {
+      particles.destroy();
     });
   }
 
