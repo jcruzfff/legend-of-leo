@@ -23,6 +23,8 @@ export default class Level4Scene extends Scene {
   private exitGate?: Phaser.Physics.Arcade.Sprite;
   private concreteDoor?: Phaser.GameObjects.Sprite;
   private doorActive: boolean = false;
+  private debugCollisions: boolean = true; // Toggle for debugging collisions
+  private debugGraphics?: Phaser.GameObjects.Graphics;
 
   constructor() {
     super({ key: 'Level4Scene' });
@@ -168,8 +170,6 @@ export default class Level4Scene extends Scene {
       this.addFurniture();
       // Add the guard to the left room
       this.addGuard();
-      // Add the concrete door in the gap between rooms by default
-      this.addConcreteDoor();
     } catch (error) {
       console.error('Failed to load level4 tilemap:', error);
       // Fall back to creating a programmatic level
@@ -217,6 +217,12 @@ export default class Level4Scene extends Scene {
     
     // Create the exit gate
     this.createExitGate();
+    
+    // Add the concrete door after the player is created
+    // for better collision handling
+    this.addConcreteDoor();
+    
+    console.log("Level 4 scene fully initialized");
   }
   
   /**
@@ -862,45 +868,6 @@ export default class Level4Scene extends Scene {
   }
 
   /**
-   * Add the concrete door in the passage between rooms (closed by default)
-   */
-  addConcreteDoor() {
-    const tileSize = 48;
-    const doorX = 10 * tileSize;
-    const doorY = 8.5 * tileSize;
-    
-    // Create the concrete door sprite
-    this.concreteDoor = this.physics.add.sprite(doorX, doorY, 'concrete-door');
-    this.concreteDoor.setDisplaySize(24, 144);
-    
-    // Set the door to show the first frame (closed position)
-    this.concreteDoor.setFrame(0);
-    
-    // Setup physics body for collision
-    const doorBody = this.concreteDoor.body as Phaser.Physics.Arcade.Body | undefined;
-    if (doorBody) {
-      doorBody.immovable = true;
-    }
-    
-    this.concreteDoor.setDepth(10);
-    
-    // Add collision with player
-    if (this.player) {
-      this.physics.add.collider(this.player.sprite, this.concreteDoor);
-    }
-    
-    // Create the door opening animation if it doesn't exist
-    if (!this.anims.exists('concrete-door-open')) {
-      this.anims.create({
-        key: 'concrete-door-open',
-        frames: this.anims.generateFrameNumbers('concrete-door', { start: 0, end: 3 }),
-        frameRate: 8,
-        repeat: 0 // Play once
-      });
-    }
-  }
-
-  /**
    * Show a message when interacting with the big-screens
    */
   showScreensMessage() {
@@ -954,11 +921,17 @@ export default class Level4Scene extends Scene {
     
     // When the animation completes, disable the collision
     this.concreteDoor.once('animationcomplete', () => {
-      // Disable the physics body to allow player to pass through
-      if (this.concreteDoor && this.concreteDoor.body) {
-        // Cast to the correct type to access immovable property
+      console.log('Door animation completed, disabling collision');
+      
+      // Properly disable the physics body to allow player to pass through
+      if (this.concreteDoor) {
         const doorBody = this.concreteDoor.body as Phaser.Physics.Arcade.Body;
-        doorBody.enable = false;
+        if (doorBody) {
+          doorBody.enable = false; // Completely disable physics body
+          
+          // Set a debug message to verify it worked
+          console.log('Door physics disabled:', doorBody.enable);
+        }
       }
       
       // Add a subtle particle effect for emphasis
@@ -996,6 +969,57 @@ export default class Level4Scene extends Scene {
     this.time.delayedCall(1000, () => {
       particles.destroy();
     });
+  }
+
+  /**
+   * Add the concrete door in the passage between rooms (closed by default)
+   */
+  addConcreteDoor() {
+    const tileSize = 48;
+    const doorX = 10 * tileSize;
+    const doorY = 8.5 * tileSize;
+    
+    // Create the concrete door sprite with proper physics
+    this.concreteDoor = this.physics.add.sprite(doorX, doorY, 'concrete-door');
+    this.concreteDoor.setDisplaySize(24, 144);
+    
+    // Set the door to show the first frame (closed position)
+    this.concreteDoor.setFrame(0);
+    
+    // Setup physics body properly for collision
+    const doorBody = this.concreteDoor.body as Phaser.Physics.Arcade.Body;
+    if (doorBody) {
+      doorBody.immovable = true;
+      doorBody.setSize(24, 144); // Ensure hitbox matches visual size
+      doorBody.enable = true; // Make sure physics are enabled
+      doorBody.allowGravity = false;
+    }
+    
+    this.concreteDoor.setDepth(10);
+    
+    // Create the door opening animation if it doesn't exist
+    if (!this.anims.exists('concrete-door-open')) {
+      this.anims.create({
+        key: 'concrete-door-open',
+        frames: this.anims.generateFrameNumbers('concrete-door', { start: 0, end: 3 }),
+        frameRate: 8,
+        repeat: 0 // Play once
+      });
+    }
+
+    // Add collision with player - should work now that player exists
+    if (this.player && this.concreteDoor) {
+      console.log('Setting up concrete door collision with player');
+      this.physics.add.collider(
+        this.player.sprite, 
+        this.concreteDoor,
+        undefined,
+        () => !this.doorActive, // Only collide when door is not active/open
+        this
+      );
+    } else {
+      console.error('Could not set up door collision - player or door missing');
+    }
   }
 
   update() {
