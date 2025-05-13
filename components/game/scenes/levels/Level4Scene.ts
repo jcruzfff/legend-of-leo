@@ -438,30 +438,7 @@ export default class Level4Scene extends Scene {
     if (this.hasKeycard) return;
     
     this.hasKeycard = true;
-    console.log('Keycard obtained from guard!');
-    
-    // Create a visual and text feedback
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    // Show collection message
-    const keycardText = this.add.text(
-      width / 2,
-      height / 2,
-      "Keycard obtained from guard!",
-      {
-        fontSize: '18px',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-    
-    // Remove text after a few seconds
-    this.time.delayedCall(3000, () => {
-      keycardText.destroy();
-    });
+
   }
   
   /**
@@ -572,29 +549,29 @@ export default class Level4Scene extends Scene {
     this.exitGate.play('blue-gate-open');
     
     // Show a message about the gate opening
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    // const width = this.cameras.main.width;
+    // const height = this.cameras.main.height;
     
-    const gateText = this.add.text(
-      width / 2,
-      height / 2,
-      "The exit gate has opened!",
-      {
-        fontSize: '18px',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    // const gateText = this.add.text(
+    //   width / 2,
+    //   height / 2,
+    //   "The exit gate has opened!",
+    //   {
+    //     fontSize: '18px',
+    //     color: '#FFFFFF',
+    //     backgroundColor: '#00000080',
+    //     padding: { x: 20, y: 10 },
+    //     align: 'center'
+    //   }
+    // ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
     
     // Add a particle effect for emphasis
     this.addGateOpeningEffect(this.exitGate.x, this.exitGate.y);
     
     // Remove text after a few seconds
-    this.time.delayedCall(3000, () => {
-      gateText.destroy();
-    });
+    // this.time.delayedCall(3000, () => {
+    //   gateText.destroy();
+    // });
     
     // The player now needs to walk through the gate to trigger the transition
     // instead of immediately transitioning
@@ -1334,20 +1311,20 @@ export default class Level4Scene extends Scene {
     this.doorActive = true;
     
     // Display a message about the door opening
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    const doorMsg = this.add.text(
-      width / 2,
-      height / 2,
-      "The concrete door is opening!",
-      {
-        fontSize: '18px',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    // const width = this.cameras.main.width;
+    // const height = this.cameras.main.height;
+    // const doorMsg = this.add.text(
+    //   width / 2,
+    //   height / 2,
+    //   "The concrete door is opening!",
+    //   {
+    //     fontSize: '18px',
+    //     color: '#FFFFFF',
+    //     backgroundColor: '#00000080',
+    //     padding: { x: 20, y: 10 },
+    //     align: 'center'
+    //   }
+    // ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
     
     // Play the door opening animation
     this.concreteDoor.play('concrete-door-open');
@@ -1373,9 +1350,9 @@ export default class Level4Scene extends Scene {
       }
       
       // Remove the message after a brief delay
-      this.time.delayedCall(1000, () => {
-        doorMsg.destroy();
-      });
+      // this.time.delayedCall(1000, () => {
+      //   doorMsg.destroy();
+      // });
     });
   }
   

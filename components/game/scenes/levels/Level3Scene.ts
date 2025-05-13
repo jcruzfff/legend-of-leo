@@ -889,26 +889,26 @@ export default class Level3Scene extends Scene {
    */
   transitionToNextLevel() {
     // Show a transition message
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    // const width = this.cameras.main.width;
+    // const height = this.cameras.main.height;
     
-    const transitionText = this.add.text(
-      width / 2,
-      height / 2,
-      "Proceeding to Level 4...",
-      {
-        fontSize: '18px',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    // const transitionText = this.add.text(
+    //   width / 2,
+    //   height / 2,
+    //   "Proceeding to Level 4...",
+    //   {
+    //     fontSize: '18px',
+    //     color: '#FFFFFF',
+    //     backgroundColor: '#00000080',
+    //     padding: { x: 20, y: 10 },
+    //     align: 'center'
+    //   }
+    // ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
     
-    // Remove text after a short delay (before the fade completes)
-    this.time.delayedCall(800, () => {
-      transitionText.destroy();
-    });
+    // // Remove text after a short delay (before the fade completes)
+    // this.time.delayedCall(800, () => {
+    //   transitionText.destroy();
+    // });
     
     // Fade out effect
     this.cameras.main.fade(1000, 0, 0, 0);

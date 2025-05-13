@@ -608,23 +608,23 @@ export default class Level1Scene extends Scene {
         }
         
         // Show a message about the gate opening
-        const gateText = this.add.text(
-          width / 2,
-          height / 2,
-          "The gate has opened! You can now proceed.",
-          {
-            fontSize: '18px',
-            color: '#FFFFFF',
-            backgroundColor: '#00000080',
-            padding: { x: 20, y: 10 },
-            align: 'center'
-          }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+        // const gateText = this.add.text(
+        //   width / 2,
+        //   height / 2,
+        //   "The gate has opened! You can now proceed.",
+        //   {
+        //     fontSize: '18px',
+        //     color: '#FFFFFF',
+        //     backgroundColor: '#00000080',
+        //     padding: { x: 20, y: 10 },
+        //     align: 'center'
+        //   }
+        // ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
         
-        // Remove text after a few seconds
-        this.time.delayedCall(3000, () => {
-          gateText.destroy();
-        });
+        // // Remove text after a few seconds
+        // this.time.delayedCall(3000, () => {
+        //   gateText.destroy();
+        // });
       }
       
       // Remove the keyboard listener
@@ -728,7 +728,6 @@ export default class Level1Scene extends Scene {
       });
     }
     
-    console.log('Keycard inserted, initiating gate opening sequence');
   }
   
   /**
@@ -1013,11 +1012,11 @@ export default class Level1Scene extends Scene {
     this.keycard = this.add.sprite(keycardX, keycardY, 'backwall-keycard');
     
     // Make it semi-visible to show interaction area
-    this.keycard.setAlpha(0.1);
+    this.keycard.setAlpha(0);
     
     // Create a subtle glow effect
     const glowGraphics = this.add.graphics();
-    glowGraphics.lineStyle(2, 0x00ff00, 0.3);
+    glowGraphics.lineStyle(2, 0x00ff00, 0);
     glowGraphics.strokeRect(keycardX - 24, keycardY - 24, 48, 48);
     
     // Add a pulsing animation to the glow
@@ -1114,29 +1113,29 @@ export default class Level1Scene extends Scene {
     this.exitGate.play('blue-gate-open');
     
     // Show a message about the gate opening
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    // const width = this.cameras.main.width;
+    // const height = this.cameras.main.height;
     
-    const gateText = this.add.text(
-      width / 2,
-      height / 2,
-      "The exit gate has opened! Proceed to the next level.",
-      {
-        fontSize: '18px',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    // const gateText = this.add.text(
+    //   width / 2,
+    //   height / 2,
+    //   "The exit gate has opened! Proceed to the next level.",
+    //   {
+    //     fontSize: '18px',
+    //     color: '#FFFFFF',
+    //     backgroundColor: '#00000080',
+    //     padding: { x: 20, y: 10 },
+    //     align: 'center'
+    //   }
+    // ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
     
     // Add a subtle particle effect for emphasis
     this.addGateOpeningEffect(this.exitGate.x, this.exitGate.y);
     
     // Remove text after a few seconds
-    this.time.delayedCall(3000, () => {
-      gateText.destroy();
-    });
+    // this.time.delayedCall(3000, () => {
+    //   gateText.destroy();
+    // });
   }
   
   /**

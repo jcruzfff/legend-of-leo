@@ -22,6 +22,7 @@ export default class Level5Scene extends Scene {
   private finalNPC?: Phaser.GameObjects.Sprite;
   private backToMainButton?: Phaser.GameObjects.Rectangle;
   private debugCollisions: boolean = false; // Toggle for debugging collisions
+  private buildingExitPoints: Map<string, { x: number, y: number, door?: string }> = new Map();
   
   // Mini map properties
   private miniMap?: Phaser.GameObjects.Container;
@@ -34,6 +35,13 @@ export default class Level5Scene extends Scene {
   private miniMapToggleBtn?: Phaser.GameObjects.Container;
   private isMiniMapVisible: boolean = false; // Set initially to false to hide the mini map
   private debugGraphics?: Phaser.GameObjects.Graphics;
+
+  // Add new properties for storing individual door indicators
+  private firstBuildingDoorIndicator?: Phaser.GameObjects.Sprite;
+  private secondBuildingDoorIndicator?: Phaser.GameObjects.Sprite;
+  private thirdBuildingLeftDoorIndicator?: Phaser.GameObjects.Sprite;
+  private thirdBuildingRightDoorIndicator?: Phaser.GameObjects.Sprite;
+  private randomHouseDoorIndicator?: Phaser.GameObjects.Sprite;
 
   constructor() {
     super({ key: 'Level5Scene' });
@@ -236,6 +244,12 @@ export default class Level5Scene extends Scene {
 
     // Create mini map
     this.createMiniMap();
+
+    // Check for entry from a building
+    this.checkBuildingEntry();
+    
+    // Register building scenes if not already registered
+    this.registerBuildingScenes();
 
     console.log("Level 5 scene fully initialized");
   }
@@ -581,59 +595,74 @@ export default class Level5Scene extends Scene {
   }
   
   /**
-   * Check if any interactive objects are in range and show indicators
+   * Check for nearby interactive objects
    */
-  checkInteractiveObjects() {
-    if (!this.player) return;
+  checkForNearbyObjects() {
+    if (!this.player || this.interactiveObjects.length === 0) return;
     
-    const playerPos = this.player.sprite.getCenter();
-    const interactDistance = 60; // Interaction range
-    let closestObject: Phaser.GameObjects.GameObject | undefined;
-    let closestDistance = interactDistance;
+    const playerX = this.player.sprite.x;
+    const playerY = this.player.sprite.y;
+    let nearestObject: Phaser.GameObjects.GameObject | undefined;
+    let shortestDistance = 100; // Interaction range
     
-    // First, hide all indicators
-    this.interactionIndicators.forEach(indicator => {
+    // First, hide all indicators EXCEPT building door indicators
+    this.interactionIndicators.forEach((indicator, obj) => {
+      // Skip building entrance indicators - they should stay visible
+      if (obj.getData('isEntrance') === true) {
+        return;
+      }
       indicator.setVisible(false);
     });
     
-    // Find the closest interactive object in range
+    // Check distance to each interactive object
     this.interactiveObjects.forEach(obj => {
-      let objX = 0;
-      let objY = 0;
+      if (!obj.active) return;
       
-      if ('getCenter' in obj) {
-        const center = (obj as unknown as Phaser.GameObjects.Sprite).getCenter();
-        objX = center.x;
-        objY = center.y;
-      } else if ('x' in obj && 'y' in obj) {
-        objX = (obj as unknown as { x: number }).x;
-        objY = (obj as unknown as { y: number }).y;
+      // Define a type with x and y properties
+      interface PositionComponent {
+        x: number;
+        y: number;
       }
       
-      const distance = Phaser.Math.Distance.Between(
-        playerPos.x, playerPos.y,
-        objX, objY
-      );
+      // Get object position with safer casting
+      const position = (obj as unknown) as PositionComponent;
+      const objX = position.x;
+      const objY = position.y;
       
-      if (distance < interactDistance) {
-        // If object is in range, show its indicator
-        const indicator = this.interactionIndicators.get(obj);
-        if (indicator) {
-          // Update position (in case object moved)
-          indicator.setPosition(objX, objY - 40);
-          indicator.setVisible(true);
+      // Calculate distance
+      const distance = Phaser.Math.Distance.Between(playerX, playerY, objX, objY);
+      
+      // Get indicator for this object
+      const indicator = this.interactionIndicators.get(obj);
+      
+      // If in interaction range, update nearest object
+      if (distance < shortestDistance) {
+        shortestDistance = distance;
+        nearestObject = obj;
+      }
+      
+      // Update indicator visibility based on distance
+      if (indicator && obj.getData('isEntrance') === true) {
+        const interactionRange = 80; // Slightly larger than the nearest check
+        // We still want to animate the door indicators when near, but never hide them
+        if (distance < interactionRange) {
+          // Make it pulse more vigorously when very close
+          if (distance < 60) {
+            indicator.setAlpha(0.8 + Math.sin(this.time.now / 150) * 0.2);
+            indicator.setScale(1.3 + Math.sin(this.time.now / 200) * 0.1);
+          } else {
+            indicator.setAlpha(0.7 + Math.sin(this.time.now / 250) * 0.2);
+            indicator.setScale(1.2 + Math.sin(this.time.now / 300) * 0.05);
+          }
         }
-        
-        // Track closest object for interaction
-        if (distance < closestDistance) {
-          closestObject = obj;
-          closestDistance = distance;
-        }
+      } else if (indicator && distance < shortestDistance) {
+        // For non-entrance objects, only show indicator when in range
+        indicator.setVisible(true);
       }
     });
     
-    // Update the nearby object reference
-    this.nearbyObject = closestObject;
+    // Update the nearest object reference
+    this.nearbyObject = nearestObject;
   }
   
   /**
@@ -980,7 +1009,7 @@ export default class Level5Scene extends Scene {
     firstBuilding.setOrigin(0.5); // Center the origin
     firstBuilding.setDepth(5); // Set depth to show above the ground but below some other elements
     
-    // Make the building interactive
+    // Make the building interactive but without visible indicator
     firstBuilding.setInteractive({ useHandCursor: true });
     firstBuilding.setData('interactive', true);
     firstBuilding.setData('onInteract', () => {
@@ -990,10 +1019,29 @@ export default class Level5Scene extends Scene {
     // Add to interactive objects array
     this.interactiveObjects.push(firstBuilding);
     
-    // Create a dedicated indicator for the building
-    this.createInteractionIndicator(firstBuilding);
-    
     console.log('Added first building at:', buildingX, buildingY);
+    
+    // First building door position
+    const firstBuildingDoorX = buildingX;
+    const firstBuildingDoorY = buildingY + 300; // Increased from +30 to +90 to position at bottom door
+    
+    const firstBuildingDoor = this.add.rectangle(firstBuildingDoorX, firstBuildingDoorY, 30, 30, 0x000000, 0.1);
+    firstBuildingDoor.setOrigin(0.5);
+    firstBuildingDoor.setInteractive({ useHandCursor: true });
+    firstBuildingDoor.setData('interactive', true);
+    firstBuildingDoor.setData('isEntrance', true); // Mark as entrance door
+    firstBuildingDoor.setData('onInteract', () => {
+      this.enterBuilding('FirstBuildingScene', { x: firstBuildingDoorX, y: firstBuildingDoorY });
+    });
+    
+    // Add door to interactive objects
+    this.interactiveObjects.push(firstBuildingDoor);
+    
+    // Create indicator ONLY for the door
+    this.firstBuildingDoorIndicator = this.createDoorIndicator(firstBuildingDoor, firstBuildingDoorX, firstBuildingDoorY - 40);
+    this.firstBuildingDoorIndicator.setVisible(true); // Always visible
+    
+    console.log('Added first building door at:', firstBuildingDoorX, firstBuildingDoorY);
     
     // Add the second building - about 5 columns to the right on the same street
     const secondBuildingX = (30 + 7) * tileSize; // 5 columns to the right of the first building
@@ -1003,7 +1051,7 @@ export default class Level5Scene extends Scene {
     secondBuilding.setOrigin(0.5);
     secondBuilding.setDepth(5);
     
-    // Make the second building interactive
+    // Make the second building interactive but without visible indicator
     secondBuilding.setInteractive({ useHandCursor: true });
     secondBuilding.setData('interactive', true);
     secondBuilding.setData('onInteract', () => {
@@ -1013,10 +1061,29 @@ export default class Level5Scene extends Scene {
     // Add to interactive objects array
     this.interactiveObjects.push(secondBuilding);
     
-    // Create a dedicated indicator for the second building
-    this.createInteractionIndicator(secondBuilding);
-    
     console.log('Added second building at:', secondBuildingX, secondBuildingY);
+    
+    // Second building door position 
+    const secondBuildingDoorX = secondBuildingX;
+    const secondBuildingDoorY = secondBuildingY + 300; // Increased from +30 to +90 to position at bottom door
+    
+    const secondBuildingDoor = this.add.rectangle(secondBuildingDoorX, secondBuildingDoorY, 30, 30, 0x000000, 0.1);
+    secondBuildingDoor.setOrigin(0.5);
+    secondBuildingDoor.setInteractive({ useHandCursor: true });
+    secondBuildingDoor.setData('interactive', true);
+    secondBuildingDoor.setData('isEntrance', true); // Mark as entrance door
+    secondBuildingDoor.setData('onInteract', () => {
+      this.enterBuilding('SecondBuildingScene', { x: secondBuildingDoorX, y: secondBuildingDoorY });
+    });
+    
+    // Add door to interactive objects
+    this.interactiveObjects.push(secondBuildingDoor);
+    
+    // Create indicator ONLY for the door
+    this.secondBuildingDoorIndicator = this.createDoorIndicator(secondBuildingDoor, secondBuildingDoorX, secondBuildingDoorY - 40);
+    this.secondBuildingDoorIndicator.setVisible(true); // Always visible
+    
+    console.log('Added second building door at:', secondBuildingDoorX, secondBuildingDoorY);
     
     // Add the third building - about 20 tiles below the first building
     const thirdBuildingX = 22 * tileSize; // Same column as the first building
@@ -1028,7 +1095,7 @@ export default class Level5Scene extends Scene {
     // Make the third building 20% smaller while maintaining aspect ratio
     thirdBuilding.setScale(0.8);
     
-    // Make the third building interactive
+    // Make the third building interactive but without visible indicator
     thirdBuilding.setInteractive({ useHandCursor: true });
     thirdBuilding.setData('interactive', true);
     thirdBuilding.setData('onInteract', () => {
@@ -1038,10 +1105,55 @@ export default class Level5Scene extends Scene {
     // Add to interactive objects array
     this.interactiveObjects.push(thirdBuilding);
     
-    // Create a dedicated indicator for the third building
-    this.createInteractionIndicator(thirdBuilding);
-    
     console.log('Added third building at:', thirdBuildingX, thirdBuildingY);
+    
+    // Third building doors positions
+    const thirdBuildingDoor1X = thirdBuildingX - 120; // Left door, adjusted position
+    const thirdBuildingDoor1Y = thirdBuildingY + 340; // Increased from +45 to +120 to position at bottom door
+    
+    const thirdBuildingDoor1 = this.add.rectangle(thirdBuildingDoor1X, thirdBuildingDoor1Y, 30, 30, 0x000000, 0.1);
+    thirdBuildingDoor1.setOrigin(0.5);
+    thirdBuildingDoor1.setInteractive({ useHandCursor: true });
+    thirdBuildingDoor1.setData('interactive', true);
+    thirdBuildingDoor1.setData('isEntrance', true); // Mark as entrance door
+    thirdBuildingDoor1.setData('onInteract', () => {
+      // Store the exit position for the left door with a special key
+      this.buildingExitPoints.set('ThirdBuildingScene-left', { x: thirdBuildingDoor1X, y: thirdBuildingDoor1Y });
+      this.enterBuilding('ThirdBuildingScene', { x: thirdBuildingDoor1X, y: thirdBuildingDoor1Y, door: 'left' });
+    });
+    
+    // Add door to interactive objects
+    this.interactiveObjects.push(thirdBuildingDoor1);
+    
+    // Create indicator for the first door
+    this.thirdBuildingLeftDoorIndicator = this.createDoorIndicator(thirdBuildingDoor1, thirdBuildingDoor1X, thirdBuildingDoor1Y - 40);
+    this.thirdBuildingLeftDoorIndicator.setVisible(true); // Always visible
+    
+    console.log('Added third building left door at:', thirdBuildingDoor1X, thirdBuildingDoor1Y);
+    
+    // Right door of third building
+    const thirdBuildingDoor2X = thirdBuildingX + 110; // Right door, adjusted position
+    const thirdBuildingDoor2Y = thirdBuildingY + 340; // Increased from +45 to +120 to position at bottom door
+    
+    const thirdBuildingDoor2 = this.add.rectangle(thirdBuildingDoor2X, thirdBuildingDoor2Y, 30, 30, 0x000000, 0.6);
+    thirdBuildingDoor2.setOrigin(0.5);
+    thirdBuildingDoor2.setInteractive({ useHandCursor: true });
+    thirdBuildingDoor2.setData('interactive', true);
+    thirdBuildingDoor2.setData('isEntrance', true); // Mark as entrance door
+    thirdBuildingDoor2.setData('onInteract', () => {
+      // Store the exit position for the right door with a special key
+      this.buildingExitPoints.set('ThirdBuildingScene-right', { x: thirdBuildingDoor2X, y: thirdBuildingDoor2Y });
+      this.enterBuilding('ThirdBuildingScene', { x: thirdBuildingDoor2X, y: thirdBuildingDoor2Y, door: 'right' });
+    });
+    
+    // Add door to interactive objects
+    this.interactiveObjects.push(thirdBuildingDoor2);
+    
+    // Create indicator for the second door
+    this.thirdBuildingRightDoorIndicator = this.createDoorIndicator(thirdBuildingDoor2, thirdBuildingDoor2X, thirdBuildingDoor2Y - 40);
+    this.thirdBuildingRightDoorIndicator.setVisible(true); // Always visible
+    
+    console.log('Added third building right door at:', thirdBuildingDoor2X, thirdBuildingDoor2Y);
     
     // Add the random house - 15 tiles to the left of the third building on the same street
     const randomHouseX = (22 - 18) * tileSize; // 15 tiles to the left of the third building
@@ -1051,7 +1163,7 @@ export default class Level5Scene extends Scene {
     randomHouse.setOrigin(0.5);
     randomHouse.setDepth(5);
     
-    // Make the random house interactive
+    // Make the random house interactive but without visible indicator
     randomHouse.setInteractive({ useHandCursor: true });
     randomHouse.setData('interactive', true);
     randomHouse.setData('onInteract', () => {
@@ -1061,10 +1173,29 @@ export default class Level5Scene extends Scene {
     // Add to interactive objects array
     this.interactiveObjects.push(randomHouse);
     
-    // Create a dedicated indicator for the random house
-    this.createInteractionIndicator(randomHouse);
-    
     console.log('Added random house at:', randomHouseX, randomHouseY);
+    
+    // Random house door
+    const randomHouseDoorX = randomHouseX - 24;
+    const randomHouseDoorY = randomHouseY + 220; // Increased from +30 to +90 to position at bottom door
+    
+    const randomHouseDoor = this.add.rectangle(randomHouseDoorX, randomHouseDoorY, 30, 30, 0x000000, 0.1);
+    randomHouseDoor.setOrigin(0.5);
+    randomHouseDoor.setInteractive({ useHandCursor: true });
+    randomHouseDoor.setData('interactive', true);
+    randomHouseDoor.setData('isEntrance', true); // Mark as entrance door
+    randomHouseDoor.setData('onInteract', () => {
+      this.enterBuilding('RandomHouseScene', { x: randomHouseDoorX, y: randomHouseDoorY });
+    });
+    
+    // Add door to interactive objects
+    this.interactiveObjects.push(randomHouseDoor);
+    
+    // Create indicator for the door
+    this.randomHouseDoorIndicator = this.createDoorIndicator(randomHouseDoor, randomHouseDoorX, randomHouseDoorY - 40);
+    this.randomHouseDoorIndicator.setVisible(true); // Always visible
+    
+    console.log('Added random house door at:', randomHouseDoorX, randomHouseDoorY);
   }
   
   /**
@@ -1132,67 +1263,6 @@ export default class Level5Scene extends Scene {
   }
 
   /**
-   * Check for nearby interactive objects
-   */
-  checkForNearbyObjects() {
-    if (!this.player || this.interactiveObjects.length === 0) return;
-    
-    const playerX = this.player.sprite.x;
-    const playerY = this.player.sprite.y;
-    let nearestObject: Phaser.GameObjects.GameObject | undefined;
-    let shortestDistance = 100; // Interaction range
-    
-    // Check distance to each interactive object
-    this.interactiveObjects.forEach(obj => {
-      if (!obj.active) return;
-      
-      // Define a type with x and y properties
-      interface PositionComponent {
-        x: number;
-        y: number;
-      }
-      
-      // Get object position with safer casting
-      const position = (obj as unknown) as PositionComponent;
-      const objX = position.x;
-      const objY = position.y;
-      
-      // Calculate distance
-      const distance = Phaser.Math.Distance.Between(playerX, playerY, objX, objY);
-      
-      // Get indicator for this object
-      const indicator = this.interactionIndicators.get(obj);
-      
-      // If in interaction range, update nearest object
-      if (distance < shortestDistance) {
-        shortestDistance = distance;
-        nearestObject = obj;
-      }
-      
-      // Update indicator visibility based on distance
-      if (indicator) {
-        const interactionRange = 80; // Slightly larger than the nearest check
-        if (distance < interactionRange) {
-          indicator.setVisible(true);
-          // Make it pulse more vigorously when very close
-          if (distance < 60) {
-            indicator.setAlpha(0.8 + Math.sin(this.time.now / 150) * 0.2);
-            indicator.setScale(1.1 + Math.sin(this.time.now / 200) * 0.1);
-          } else {
-            indicator.setAlpha(0.6 + Math.sin(this.time.now / 250) * 0.2);
-            indicator.setScale(1 + Math.sin(this.time.now / 300) * 0.05);
-          }
-        } else {
-          indicator.setVisible(false);
-        }
-      }
-    });
-    
-    // Update the nearest object reference
-    this.nearbyObject = nearestObject;
-  }
-
-  /**
    * Draw debug visualizations if enabled
    */
   drawDebugCollisions() {
@@ -1233,5 +1303,329 @@ export default class Level5Scene extends Scene {
         this.debugGraphics?.strokeCircle(objX, objY, 10);
       }
     });
+  }
+
+  /**
+   * Check if we're entering from a building and set the player position accordingly
+   */
+  checkBuildingEntry() {
+    // Use type assertion to define the expected data structure
+    const data = this.scene.settings.data as { 
+      fromBuilding?: string;
+      exitDoor?: string;
+    } | undefined;
+    
+    if (data && data.fromBuilding) {
+      // We're returning from a building, so place the player at the exit point
+      const exitPoint = this.buildingExitPoints.get(data.fromBuilding);
+      if (exitPoint && this.player) {
+        let exitX = exitPoint.x;
+        let exitY = exitPoint.y;
+        
+        // Handle special case for third building with multiple doors
+        if (data.fromBuilding === 'ThirdBuildingScene' && data.exitDoor) {
+          // Adjust position based on which door the player is exiting from
+          if (data.exitDoor === 'left') {
+            // Use the left door position stored in buildingExitPoints
+            const leftDoorPoint = this.buildingExitPoints.get('ThirdBuildingScene-left');
+            if (leftDoorPoint) {
+              exitX = leftDoorPoint.x;
+              exitY = leftDoorPoint.y;
+            }
+          } else if (data.exitDoor === 'right') {
+            // Use the right door position stored in buildingExitPoints
+            const rightDoorPoint = this.buildingExitPoints.get('ThirdBuildingScene-right');
+            if (rightDoorPoint) {
+              exitX = rightDoorPoint.x;
+              exitY = rightDoorPoint.y;
+            }
+          }
+        }
+        
+        console.log(`Returning from ${data.fromBuilding} to position:`, exitX, exitY);
+        this.player.sprite.setPosition(exitX, exitY);
+      }
+    }
+  }
+  
+  /**
+   * Register all building scenes
+   */
+  registerBuildingScenes() {
+    // Register scenes sequentially to avoid conflicts
+    this.registerFirstBuildingScene()
+      .then(() => this.registerSecondBuildingScene())
+      .then(() => this.registerThirdBuildingScene())
+      .then(() => this.registerRandomHouseScene())
+      .then(() => {
+        console.log('All building scenes registered successfully');
+      })
+      .catch(error => {
+        console.error('Error in scene registration chain:', error);
+      });
+  }
+
+  /**
+   * Register FirstBuildingScene
+   */
+  private registerFirstBuildingScene(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.scene.get('FirstBuildingScene')) {
+        console.log('Registering FirstBuildingScene...');
+        import('@/components/game/scenes/buildings/FirstBuildingScene')
+          .then(module => {
+            const FirstBuildingScene = module.default;
+            this.scene.add('FirstBuildingScene', new FirstBuildingScene(), false);
+            console.log('Successfully registered FirstBuildingScene');
+            resolve();
+          })
+          .catch(error => {
+            console.error('Error loading FirstBuildingScene:', error);
+            resolve(); // Continue to next scene even if this one fails
+          });
+      } else {
+        console.log('FirstBuildingScene already registered');
+        resolve();
+      }
+    });
+  }
+
+  /**
+   * Register SecondBuildingScene
+   */
+  private registerSecondBuildingScene(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.scene.get('SecondBuildingScene')) {
+        console.log('Registering SecondBuildingScene...');
+        import('@/components/game/scenes/buildings/SecondBuildingScene')
+          .then(module => {
+            const SecondBuildingScene = module.default;
+            this.scene.add('SecondBuildingScene', new SecondBuildingScene(), false);
+            console.log('Successfully registered SecondBuildingScene');
+            resolve();
+          })
+          .catch(error => {
+            console.error('Error loading SecondBuildingScene:', error);
+            resolve(); // Continue to next scene even if this one fails
+          });
+      } else {
+        console.log('SecondBuildingScene already registered');
+        resolve();
+      }
+    });
+  }
+
+  /**
+   * Register ThirdBuildingScene
+   */
+  private registerThirdBuildingScene(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.scene.get('ThirdBuildingScene')) {
+        console.log('Registering ThirdBuildingScene...');
+        import('@/components/game/scenes/buildings/ThirdBuildingScene')
+          .then(module => {
+            const ThirdBuildingScene = module.default;
+            this.scene.add('ThirdBuildingScene', new ThirdBuildingScene(), false);
+            console.log('Successfully registered ThirdBuildingScene');
+            resolve();
+          })
+          .catch(error => {
+            console.error('Error loading ThirdBuildingScene:', error);
+            resolve(); // Continue to next scene even if this one fails
+          });
+      } else {
+        console.log('ThirdBuildingScene already registered');
+        resolve();
+      }
+    });
+  }
+
+  /**
+   * Register RandomHouseScene
+   */
+  private registerRandomHouseScene(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.scene.get('RandomHouseScene')) {
+        console.log('Registering RandomHouseScene...');
+        import('@/components/game/scenes/buildings/RandomHouseScene')
+          .then(module => {
+            const RandomHouseScene = module.default;
+            this.scene.add('RandomHouseScene', new RandomHouseScene(), false);
+            console.log('Successfully registered RandomHouseScene');
+            resolve();
+          })
+          .catch(error => {
+            console.error('Error loading RandomHouseScene:', error);
+            resolve(); // Continue even if this one fails
+          });
+      } else {
+        console.log('RandomHouseScene already registered');
+        resolve();
+      }
+    });
+  }
+
+  /**
+   * Enter a building
+   * @param building The scene key for the building interior
+   * @param exitPoint The point where the player will exit when returning
+   */
+  enterBuilding(building: string, exitPoint: { x: number, y: number, door?: string }) {
+    if (!this.player) return;
+    
+    // Ensure the scene exists before entering
+    if (!this.scene.get(building)) {
+      console.error(`Scene ${building} not found. Attempting to register it first.`);
+      
+      // Try to register the specific scene
+      let registrationPromise: Promise<void>;
+      
+      switch(building) {
+        case 'FirstBuildingScene':
+          registrationPromise = this.registerFirstBuildingScene();
+          break;
+        case 'SecondBuildingScene':
+          registrationPromise = this.registerSecondBuildingScene();
+          break;
+        case 'ThirdBuildingScene':
+          registrationPromise = this.registerThirdBuildingScene();
+          break;
+        case 'RandomHouseScene':
+          registrationPromise = this.registerRandomHouseScene();
+          break;
+        default:
+          console.error(`Unknown building scene: ${building}`);
+          return;
+      }
+      
+      // Wait for registration to complete, then try entering again
+      registrationPromise.then(() => {
+        if (this.scene.get(building)) {
+          this.actuallyEnterBuilding(building, exitPoint);
+        } else {
+          console.error(`Failed to register scene ${building}. Cannot enter building.`);
+          this.showMessage("Building cannot be entered at this time.");
+        }
+      });
+    } else {
+      this.actuallyEnterBuilding(building, exitPoint);
+    }
+  }
+  
+  /**
+   * Actually enter the building after ensuring the scene exists
+   */
+  private actuallyEnterBuilding(building: string, exitPoint: { x: number, y: number, door?: string }) {
+    // Save this position as the exit point when returning from this building
+    this.buildingExitPoints.set(building, exitPoint);
+    
+    // Store player data that needs to persist between scenes
+    const playerData = {
+      // Add any player data you want to persist between scenes
+    };
+    
+    // Fade out
+    this.cameras.main.fadeOut(500);
+    
+    // When fade is complete, start the building scene
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      // Create data to pass to the building scene
+      const buildingData = {
+        fromLevel5: true,
+        playerData,
+        entryDoor: exitPoint.door || 'main'
+      };
+      
+      // Start the building scene
+      this.scene.start(building, buildingData);
+    });
+  }
+  
+  /**
+   * Show a message when something goes wrong
+   */
+  showMessage(message: string) {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    const messageBox = this.add.rectangle(
+      width / 2,
+      height / 2,
+      400,
+      100,
+      0x000000,
+      0.8
+    );
+    messageBox.setScrollFactor(0);
+    messageBox.setDepth(1000);
+    
+    const text = this.add.text(
+      width / 2,
+      height / 2,
+      message,
+      {
+        fontSize: '18px',
+        color: '#FFFFFF',
+        align: 'center'
+      }
+    );
+    text.setOrigin(0.5);
+    text.setScrollFactor(0);
+    text.setDepth(1000);
+    
+    const group = this.add.group([messageBox, text]);
+    
+    this.time.delayedCall(3000, () => {
+      group.destroy(true);
+    });
+  }
+
+  /**
+   * Create an indicator specifically for doors, which is always visible
+   */
+  createDoorIndicator(door: Phaser.GameObjects.GameObject, x: number, y: number): Phaser.GameObjects.Sprite {
+    // Create indicator texture if it doesn't exist
+    if (!this.textures.exists('interaction-indicator')) {
+      const graphics = this.make.graphics({ x: 0, y: 0 });
+      
+      // Draw a small white dot with a glow effect
+      graphics.fillStyle(0xFFFFFF, 0.8);
+      graphics.fillCircle(16, 16, 4);
+      
+      // Add a subtle glow/halo
+      graphics.fillStyle(0xFFFFFF, 0.3);
+      graphics.fillCircle(16, 16, 8);
+      
+      graphics.generateTexture('interaction-indicator', 32, 32);
+    }
+    
+    // Create a dedicated indicator for this door
+    const indicator = this.add.sprite(x, y, 'interaction-indicator');
+    indicator.setDepth(200); // High depth to ensure visibility
+    indicator.setScale(1.2); // Make door indicators slightly larger
+    
+    // Add animations
+    this.tweens.add({
+      targets: indicator,
+      y: y - 6,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    this.tweens.add({
+      targets: indicator,
+      alpha: 0.7,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    // Store the indicator in the map as well for consistency
+    this.interactionIndicators.set(door, indicator);
+    
+    return indicator;
   }
 } 
