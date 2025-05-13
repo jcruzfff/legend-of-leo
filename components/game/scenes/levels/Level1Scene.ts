@@ -19,6 +19,7 @@ export default class Level1Scene extends Scene {
   private layers?: MapLayers;
   private interactiveObjects: Phaser.GameObjects.GameObject[] = [];
   private interactionIndicator?: Phaser.GameObjects.Sprite;
+  private computerInteractionIndicator?: Phaser.GameObjects.Sprite;
   private nearbyObject?: Phaser.GameObjects.GameObject;
   private guardNPC?: Phaser.GameObjects.Sprite;
   private gate?: Phaser.Physics.Arcade.Sprite;
@@ -195,6 +196,8 @@ export default class Level1Scene extends Scene {
     // Set the background color to match the tilemap backgroundColor
     this.cameras.main.setBackgroundColor('#2B2A3D');
     
+    console.log('Starting create() method...');
+    
     // Load the tilemap
     try {
       console.log('Loading level1 tilemap...');
@@ -207,6 +210,12 @@ export default class Level1Scene extends Scene {
       
       this.map = map;
       this.layers = layers;
+      
+      console.log('Tilemap loaded successfully:', {
+        map: !!this.map,
+        layers: !!this.layers,
+        layerNames: Object.keys(this.layers || {})
+      });
       
       // Set world bounds based on the map dimensions
       if (this.map) {
@@ -264,6 +273,11 @@ export default class Level1Scene extends Scene {
     
     // Create the blue exit gate at the top of area B
     this.createExitGate();
+
+    // Create the computer interaction zone
+    console.log('About to create computer interaction...');
+    this.createComputerInteraction();
+    console.log('Computer interaction creation completed');
   }
   
   /**
@@ -382,7 +396,7 @@ export default class Level1Scene extends Scene {
     // (This will be enhanced with actual assets once available)
     
     // Add computer desk in top right corner
-    for (let x = 9; x < 12; x++) {
+    for (let x = 10; x < 12; x++) {
       for (let y = 3; y < 5; y++) {
         // Add computer or desk tiles
         // For now, we'll just mark these tiles for visual reference
@@ -390,8 +404,256 @@ export default class Level1Scene extends Scene {
       }
     }
     
+    // Create the computer interaction zone
+    this.createComputerInteraction();
+    
     // Set collision for wall layer
     wallsLayer.setCollisionByExclusion([-1]);
+  }
+  
+  /**
+   * Create the computer interaction zone
+   */
+  createComputerInteraction() {
+    console.log('Starting createComputerInteraction...');
+    
+    // Find the computer from the Objects layer in the tilemap
+    if (!this.map || !this.layers) {
+      console.error('Map or layers not initialized');
+      return;
+    }
+
+    // Get the Objects layer
+    const objectsLayer = this.map.getLayer('Objects');
+    if (!objectsLayer || !objectsLayer.data) {
+      console.error('Objects layer not found');
+      return;
+    }
+
+    // Find the computer tile (ID 7 in the tilemap)
+    let computerTile;
+    for (let y = 0; y < objectsLayer.data.length; y++) {
+      for (let x = 0; x < objectsLayer.data[y].length; x++) {
+        const tile = objectsLayer.data[y][x];
+        if (tile.index === 7) { // 7 is the computer tile ID
+          computerTile = tile;
+          break;
+        }
+      }
+      if (computerTile) break;
+    }
+
+    if (!computerTile) {
+      console.error('Computer tile not found in map');
+      return;
+    }
+
+    // Calculate pixel position from tile position
+    const tileSize = 48;
+    const computerX = computerTile.x * tileSize + (tileSize * 1.5); // Center of the 3-tile wide computer
+    const computerY = computerTile.y * tileSize + (tileSize / 2);
+
+    // Create an invisible interaction zone for the computer
+    const computer = this.add.rectangle(computerX, computerY, tileSize * 3, tileSize, 0x000000, 0);
+    computer.setData('interactive', true);
+    computer.setData('onInteract', () => {
+      this.showComputerDialogue();
+    });
+
+    // Create dedicated indicator for computer with its own unique texture
+    const indicatorY = computerY - 40;
+    
+    // Create a dedicated texture just for the computer interaction
+    const computerIndicatorName = 'computer-interaction-dot'; // Completely new name
+    if (!this.textures.exists(computerIndicatorName)) {
+      const graphics = this.make.graphics({ x: 0, y: 0 });
+      
+      // Clear any previous drawing
+      graphics.clear();
+      
+      // Draw a white background to reset anything
+      graphics.fillStyle(0x000000, 0);
+      graphics.fillRect(0, 0, 32, 32);
+      
+      // Draw a small white dot with a glow effect
+      graphics.fillStyle(0xFFFFFF, 0.8);
+      graphics.fillCircle(16, 16, 4);
+      
+      // Add a subtle glow/halo
+      graphics.fillStyle(0xFFFFFF, 0.3);
+      graphics.fillCircle(16, 16, 8);
+      
+      graphics.generateTexture(computerIndicatorName, 32, 32);
+      console.log(`Created new computer indicator texture: ${computerIndicatorName}`);
+    }
+    
+    // Explicitly destroy any previous indicator
+    if (this.computerInteractionIndicator) {
+      this.computerInteractionIndicator.destroy();
+    }
+    
+    // Use the dedicated computer indicator texture
+    this.computerInteractionIndicator = this.add.sprite(computerX, indicatorY, computerIndicatorName);
+    console.log(`Computer indicator created at ${computerX},${indicatorY} with texture ${computerIndicatorName}`);
+
+    // Set up the computer indicator with same animations as NPC
+    this.computerInteractionIndicator.setVisible(false);
+    this.computerInteractionIndicator.setDepth(200);
+    
+    // Add bobbing animation
+    this.tweens.add({
+      targets: this.computerInteractionIndicator,
+      y: indicatorY - 6,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    // Add pulsing effect
+    this.tweens.add({
+      targets: this.computerInteractionIndicator,
+      alpha: 0.6,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Add to interactive objects array
+    this.interactiveObjects.push(computer);
+  }
+
+  /**
+   * Show educational dialogue about Web3 wallets when interacting with the computer
+   */
+  showComputerDialogue() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Create a larger dialogue box for more content
+    const dialogueBox = this.add.rectangle(
+      width / 2,
+      height - 300,
+      width - 30,
+      580,
+      0x000000,
+      1
+    );
+    dialogueBox.setScrollFactor(0);
+    dialogueBox.setOrigin(0.5);
+    dialogueBox.setStrokeStyle(2, 0x00ff00);
+    dialogueBox.setDepth(1000);
+
+    // Add a semi-transparent overlay behind the dialogue box
+    const overlay = this.add.rectangle(
+      width / 2,
+      height / 2,
+      width,
+      height,
+      0x000000,
+      0.5
+    );
+    overlay.setScrollFactor(0);
+    overlay.setDepth(999);
+
+    const message = "> TERMINAL ACCESS - PRIVACY ARCHIVES\n\n" +
+      "Web3 wallets are your digital identity in the new world. Unlike traditional wallets that expose your every transaction, Web3 wallets with zero-knowledge proofs let you prove things about yourself without revealing the underlying data.\n\n" +
+      "These wallets are your digital passport. They allow you to:\n\n" +
+      "- Prove your identity without revealing personal info\n" +
+      "- Make transactions that remain private\n" +
+      "- Control what data you share and with whom\n" +
+      "- Allow for true compliance with privacy laws\n" +
+      "- Interact permissionlessly";
+
+    const text = this.add.text(
+      width / 2,
+      height - 320,
+      '', // Start empty for typewriter effect
+      {
+        fontSize: '18px',
+        color: '#00ff00',
+        align: 'left',
+        wordWrap: { width: width - 60 },
+        lineSpacing: 6,
+        backgroundColor: undefined
+      }
+    );
+    text.setScrollFactor(0);
+    text.setOrigin(0.5);
+    text.setDepth(1000);
+
+    // Create close button
+    const buttonWidth = 160;
+    const buttonHeight = 40;
+    
+    const closeButton = this.add.rectangle(
+      width / 2,
+      height - 70,
+      buttonWidth,
+      buttonHeight,
+      0x666666
+    );
+    closeButton.setScrollFactor(0);
+    closeButton.setInteractive({ useHandCursor: true });
+    closeButton.setVisible(false);
+    closeButton.setDepth(1000);
+    
+    const closeText = this.add.text(
+      closeButton.x,
+      closeButton.y,
+      'Close Terminal',
+      {
+        fontSize: '16px',
+        color: '#FFFFFF'
+      }
+    );
+    closeText.setScrollFactor(0);
+    closeText.setOrigin(0.5);
+    closeText.setVisible(false);
+    closeText.setDepth(1000);
+    
+    // Group all dialogue elements
+    const dialogueGroup = this.add.group([
+      overlay,
+      dialogueBox,
+      text,
+      closeButton,
+      closeText
+    ]);
+
+    // Typewriter effect function
+    let currentChar = 0;
+    const typingSpeed = 5;
+    
+    const typewriterTimer = this.time.addEvent({
+      delay: typingSpeed,
+      callback: () => {
+        text.setText(message.substring(0, currentChar));
+        currentChar++;
+        
+        // When typing is complete, show the close button
+        if (currentChar > message.length) {
+          typewriterTimer.destroy();
+          closeButton.setVisible(true);
+          closeText.setVisible(true);
+        }
+      },
+      repeat: message.length
+    });
+
+    // Handle close button click
+    closeButton.on('pointerdown', () => {
+      dialogueGroup.destroy(true);
+    });
+    
+    // Add hover effects
+    closeButton.on('pointerover', () => {
+      closeButton.setFillStyle(0x555555);
+    });
+    closeButton.on('pointerout', () => {
+      closeButton.setFillStyle(0x666666);
+    });
   }
   
   /**
@@ -528,63 +790,130 @@ export default class Level1Scene extends Scene {
     
     const dialogueBox = this.add.rectangle(
       width / 2,
-      height - 100,
-      width - 100,
-      120,
+      height - 150,
+      width - 30,
+      280,
       0x000000,
-      0.7
+      0.9
     );
     dialogueBox.setScrollFactor(0);
     dialogueBox.setOrigin(0.5);
     dialogueBox.setStrokeStyle(2, 0xFFFFFF);
     
-    const message = "Halt! You can't leave until you understand what's at stake.\nYour digital identity has been compromised. Do you understand\nthe importance of privacy in the digital world?";
+    const message = "Dr. Cipherpunk: \"Hey kid, the world you lived in is gone. It's been scraped and sold. You want to leave this cell? Then build your new identity and show the proof. Get a wallet and claim your own control. Privacy is the only freedom left.\"";
     
     const text = this.add.text(
       width / 2,
-      height - 100,
-      message,
+      height - 180,
+      '', // Start empty for typewriter effect
       {
-        fontSize: '16px',
+        fontSize: '24px',
         color: '#FFFFFF',
         align: 'center',
-        wordWrap: { width: width - 150 }
+        wordWrap: { width: width - 60 },
+        lineSpacing: 8
       }
     );
     text.setScrollFactor(0);
     text.setOrigin(0.5);
     
-    // Add a continue button
-    const continueButton = this.add.rectangle(
-      width / 2,
-      height - 40,
-      120,
-      30,
+    // Create buttons but hide them initially
+    const buttonWidth = 160;
+    const buttonHeight = 40;
+    const buttonSpacing = 20;
+    
+    // Get Wallet button
+    const getWalletButton = this.add.rectangle(
+      width / 2 - buttonWidth/2 - buttonSpacing,
+      height - 55,
+      buttonWidth,
+      buttonHeight,
       0x4CAF50
     );
-    continueButton.setScrollFactor(0);
-    continueButton.setInteractive({ useHandCursor: true });
+    getWalletButton.setScrollFactor(0);
+    getWalletButton.setInteractive({ useHandCursor: true });
+    getWalletButton.setVisible(false);
     
-    const buttonText = this.add.text(
-      width / 2,
-      height - 40, 
-      'Continue',
+    const getWalletText = this.add.text(
+      getWalletButton.x,
+      getWalletButton.y,
+      'Get a Wallet',
       {
-        fontSize: '14px',
+        fontSize: '16px',
         color: '#FFFFFF'
       }
     );
-    buttonText.setScrollFactor(0);
-    buttonText.setOrigin(0.5);
+    getWalletText.setScrollFactor(0);
+    getWalletText.setOrigin(0.5);
+    getWalletText.setVisible(false);
+    
+    // Not Ready button
+    const notReadyButton = this.add.rectangle(
+      width / 2 + buttonWidth/2 + buttonSpacing,
+      height - 55,
+      buttonWidth,
+      buttonHeight,
+      0x666666
+    );
+    notReadyButton.setScrollFactor(0);
+    notReadyButton.setInteractive({ useHandCursor: true });
+    notReadyButton.setVisible(false);
+    
+    const notReadyText = this.add.text(
+      notReadyButton.x,
+      notReadyButton.y,
+      'Not Ready',
+      {
+        fontSize: '16px',
+        color: '#FFFFFF'
+      }
+    );
+    notReadyText.setScrollFactor(0);
+    notReadyText.setOrigin(0.5);
+    notReadyText.setVisible(false);
     
     // Group all dialogue elements
-    const dialogueGroup = this.add.group([dialogueBox, text, continueButton, buttonText]);
+    const dialogueGroup = this.add.group([
+      dialogueBox, 
+      text, 
+      getWalletButton, 
+      getWalletText,
+      notReadyButton,
+      notReadyText
+    ]);
     
-    // Function to handle dialogue completion
-    const completeDialogue = () => {
-      // Open the gate when player clicks Continue or presses Enter
+    // Typewriter effect
+    let currentChar = 0;
+    const typingSpeed = 10; // milliseconds per character
+    
+    const typewriterTimer = this.time.addEvent({
+      delay: typingSpeed,
+      callback: () => {
+        text.setText(message.substring(0, currentChar));
+        currentChar++;
+        
+        // When typing is complete, show the buttons
+        if (currentChar > message.length) {
+          typewriterTimer.destroy();
+          getWalletButton.setVisible(true);
+          getWalletText.setVisible(true);
+          notReadyButton.setVisible(true);
+          notReadyText.setVisible(true);
+        }
+      },
+      repeat: message.length
+    });
+    
+    // Function to handle getting wallet
+    const getWallet = () => {
+      // Open wallet URL in new tab
+      if (typeof window !== 'undefined') {
+        window.open('https://chromewebstore.google.com/detail/puzzle-aleo-wallet/fdchdcpieegfofnofhgdombfckhbcokj', '_blank');
+      }
+      
+      // Open the gate
       if (this.gate) {
-        // Disable the gate's collision body to allow the player to pass
+        // Disable the gate's collision body
         if (this.gate.body) {
           this.gate.body.enable = false;
         }
@@ -594,51 +923,43 @@ export default class Level1Scene extends Scene {
           const frameWidth = this.gate.getData('frameWidth');
           const textureHeight = this.gate.getData('textureHeight');
           
-          // Switch to the second frame by cropping the right half of the sprite sheet
           if (frameWidth && textureHeight) {
-            // Simply change the crop to show the right half of the texture (second frame)
+            // Switch to the second frame
             this.gate.setCrop(frameWidth, 0, frameWidth, textureHeight);
-            
-            // Adjust the position so the second frame appears exactly where the first frame was
-            // We need to shift left by frameWidth to compensate for showing the right half
             this.gate.x -= frameWidth;
           }
         } catch (error) {
           console.error('Error opening gate:', error);
         }
-        
-        // Show a message about the gate opening
-        // const gateText = this.add.text(
-        //   width / 2,
-        //   height / 2,
-        //   "The gate has opened! You can now proceed.",
-        //   {
-        //     fontSize: '18px',
-        //     color: '#FFFFFF',
-        //     backgroundColor: '#00000080',
-        //     padding: { x: 20, y: 10 },
-        //     align: 'center'
-        //   }
-        // ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-        
-        // // Remove text after a few seconds
-        // this.time.delayedCall(3000, () => {
-        //   gateText.destroy();
-        // });
       }
       
-      // Remove the keyboard listener
-      this.input.keyboard?.off('keydown-ENTER');
-      
-      // Destroy the dialogue
+      // Clean up dialogue
       dialogueGroup.destroy(true);
     };
     
-    // Handle continue button click
-    continueButton.on('pointerdown', completeDialogue);
+    // Function to handle not ready
+    const notReady = () => {
+      dialogueGroup.destroy(true);
+    };
     
-    // Add keyboard support for Enter key
-    this.input.keyboard?.on('keydown-ENTER', completeDialogue);
+    // Handle button clicks
+    getWalletButton.on('pointerdown', getWallet);
+    notReadyButton.on('pointerdown', notReady);
+    
+    // Add hover effects
+    getWalletButton.on('pointerover', () => {
+      getWalletButton.setFillStyle(0x45A049);
+    });
+    getWalletButton.on('pointerout', () => {
+      getWalletButton.setFillStyle(0x4CAF50);
+    });
+    
+    notReadyButton.on('pointerover', () => {
+      notReadyButton.setFillStyle(0x555555);
+    });
+    notReadyButton.on('pointerout', () => {
+      notReadyButton.setFillStyle(0x666666);
+    });
   }
   
   /**
@@ -809,6 +1130,19 @@ export default class Level1Scene extends Scene {
    * Show interaction indicator above an object
    */
   showInteractionIndicator(object: Phaser.GameObjects.GameObject) {
+    // Check if this is the computer interaction
+    if (object.getData('onInteract')?.toString().includes('showComputerDialogue')) {
+      console.log('Showing computer indicator');
+      // Make sure computer indicator exists and is visible
+      if (this.computerInteractionIndicator) {
+        this.computerInteractionIndicator.setVisible(true);
+      } else {
+        console.warn('Computer indicator not found when trying to show it');
+      }
+      return;
+    }
+
+    // Otherwise use the regular indicator for other objects
     let objX = 0;
     let objY = 0;
     
@@ -878,8 +1212,15 @@ export default class Level1Scene extends Scene {
    * Hide the interaction indicator
    */
   hideInteractionIndicator() {
+    // Hide regular indicator
     if (this.interactionIndicator) {
       this.interactionIndicator.setVisible(false);
+    }
+    
+    // Hide computer indicator
+    if (this.computerInteractionIndicator) {
+      console.log('Hiding computer indicator');
+      this.computerInteractionIndicator.setVisible(false);
     }
   }
   
@@ -1213,5 +1554,56 @@ export default class Level1Scene extends Scene {
     
     // Check for nearby interactive objects
     this.checkInteractiveObjects();
+
+    // Handle interactions
+    const spaceJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.space);
+    
+    if (spaceJustPressed) {
+      console.log('SPACE pressed, checking for interactions...');
+      
+      // Find the closest interactive object
+      const closestObject = this.findClosestInteractiveObject();
+      console.log('Closest interactive object:', {
+        found: !!closestObject,
+        isComputer: closestObject?.getData('onInteract')?.toString().includes('showComputerDialogue')
+      });
+
+      if (closestObject && closestObject.getData('interactive')) {
+        const onInteract = closestObject.getData('onInteract');
+        if (onInteract && typeof onInteract === 'function') {
+          console.log('Triggering interaction...');
+          onInteract();
+        }
+      }
+    }
+  }
+
+  /**
+   * Find the closest interactive object to the player
+   */
+  findClosestInteractiveObject(): Phaser.GameObjects.Rectangle | null {
+    if (!this.player || !this.interactiveObjects.length) return null;
+
+    const playerBounds = this.player.sprite.getBounds();
+    let closestObject = null;
+    let closestDistance = Infinity;
+
+    this.interactiveObjects.forEach((obj: Phaser.GameObjects.GameObject) => {
+      if (!(obj instanceof Phaser.GameObjects.Rectangle) || !obj.getData('interactive')) return;
+
+      const objBounds = obj.getBounds();
+      const distance = Phaser.Math.Distance.BetweenPoints(
+        { x: playerBounds.centerX, y: playerBounds.centerY },
+        { x: objBounds.centerX, y: objBounds.centerY }
+      );
+
+      // Only consider objects within interaction range (adjust the 100 value as needed)
+      if (distance < 100 && distance < closestDistance) {
+        closestDistance = distance;
+        closestObject = obj;
+      }
+    });
+
+    return closestObject;
   }
 } 

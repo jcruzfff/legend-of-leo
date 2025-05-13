@@ -258,7 +258,7 @@ export default class Level2Scene extends Scene {
     }
     
     // Show welcome message for level 2
-    this.showWelcomeMessage();
+  
 
     // Create the exit gate
     this.createExitGate();
@@ -353,32 +353,7 @@ export default class Level2Scene extends Scene {
     wallsLayer.setCollisionByExclusion([-1]);
   }
   
-  /**
-   * Show welcome message for Level 2
-   */
-  showWelcomeMessage() {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    const welcomeText = this.add.text(
-      width / 2,
-      height / 2,
-      "Welcome to Level 2!\nDigital Defense",
-      {
-        fontSize: '24px',
-        fontFamily: 'Arial',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-    
-    // Remove text after a few seconds
-    this.time.delayedCall(3000, () => {
-      welcomeText.destroy();
-    });
-  }
+
   
   /**
    * Check for interactive objects near the player
@@ -641,11 +616,11 @@ export default class Level2Scene extends Scene {
     
     const dialogueBox = this.add.rectangle(
       width / 2,
-      height - 100,
-      width - 100,
-      120,
+      height - 135,
+      width - 30,
+      260,
       0x000000,
-      0.7
+      0.9
     );
     dialogueBox.setScrollFactor(0);
     dialogueBox.setOrigin(0.5);
@@ -654,84 +629,80 @@ export default class Level2Scene extends Scene {
     // Different dialogue based on if player already has keycard
     let message;
     if (!this.hasKeycard) {
-      message = "Hello! Welcome to the Digital Defense department. You'll need a security keycard to proceed.\nHere's your keycard.";
+      message = "Hello! Welcome to the Digital Defense department. You'll need a security keycard to proceed. Here's your keycard.";
     } else {
       message = "You already have your keycard. Use it at the security terminal on the wall to open the gate.";
     }
     
     const text = this.add.text(
       width / 2,
-      height - 100,
-      message,
+      height - 160,
+      '', // Start empty for typewriter effect
       {
-        fontSize: '16px',
+        fontSize: '24px',
         color: '#FFFFFF',
         align: 'center',
-        wordWrap: { width: width - 150 }
+        wordWrap: { width: width - 60 },
+        lineSpacing: 8
       }
     );
     text.setScrollFactor(0);
     text.setOrigin(0.5);
     
-    // Add a continue button
+    // Add a continue button but hide it initially
     const continueButton = this.add.rectangle(
       width / 2,
-      height - 40,
+      height - 60,
       120,
-      30,
+      40,
       0x4CAF50
     );
     continueButton.setScrollFactor(0);
     continueButton.setInteractive({ useHandCursor: true });
+    continueButton.setVisible(false); // Hide initially
     
     const buttonText = this.add.text(
       width / 2,
-      height - 40, 
+      height - 60, 
       'Continue',
       {
-        fontSize: '14px',
+        fontSize: '16px',
         color: '#FFFFFF'
       }
     );
     buttonText.setScrollFactor(0);
     buttonText.setOrigin(0.5);
+    buttonText.setVisible(false); // Hide initially
     
     // Group all dialogue elements
     const dialogueGroup = this.add.group([dialogueBox, text, continueButton, buttonText]);
+    
+    // Typewriter effect
+    let currentChar = 0;
+    const typingSpeed = 10; // milliseconds per character
+    
+    const typewriterTimer = this.time.addEvent({
+      delay: typingSpeed,
+      callback: () => {
+        text.setText(message.substring(0, currentChar));
+        currentChar++;
+        
+        // When typing is complete, show the continue button
+        if (currentChar > message.length) {
+          typewriterTimer.destroy();
+          continueButton.setVisible(true);
+          buttonText.setVisible(true);
+        }
+      },
+      repeat: message.length
+    });
     
     // Function to handle dialogue completion
     const completeDialogue = () => {
       // Give keycard to player if they don't already have it
       if (!this.hasKeycard) {
         this.hasKeycard = true;
-        
-        // Show message about receiving keycard
-        const keycardText = this.add.text(
-          width / 2,
-          height / 2,
-          "You received a keycard! Use it at the security terminal on the wall.",
-          {
-            fontSize: '18px',
-            color: '#FFFFFF',
-            backgroundColor: '#00000080',
-            padding: { x: 20, y: 10 },
-            align: 'center'
-          }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-        
-        // Add a subtle bounce animation
-        this.tweens.add({
-          targets: keycardText,
-          y: height / 2 - 10,
-          duration: 200,
-          yoyo: true,
-          ease: 'Bounce'
-        });
-        
-        // Remove message after a few seconds
-        this.time.delayedCall(3000, () => {
-          keycardText.destroy();
-        });
+       
       }
       
       // Remove the keyboard listener
@@ -874,29 +845,13 @@ export default class Level2Scene extends Scene {
     this.exitGate.setData('isOpen', true);
     
     // Show a message about the gate opening
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
     
-    const gateText = this.add.text(
-      width / 2,
-      height / 2,
-      "The gate has opened! You can now proceed to the next level.",
-      {
-        fontSize: '18px',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
     
     // Add particle effect
     this.addGateOpeningEffect(this.exitGate.x, this.exitGate.y);
     
     // Remove text after a few seconds
-    this.time.delayedCall(3000, () => {
-      gateText.destroy();
-    });
+  
   }
 
   /**

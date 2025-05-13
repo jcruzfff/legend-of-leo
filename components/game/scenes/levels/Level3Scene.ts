@@ -250,9 +250,7 @@ export default class Level3Scene extends Scene {
       this.cameras.main.setDeadzone(100, 100);
     }
     
-    // Show welcome message for level 3
-    this.showWelcomeMessage();
-
+    
     // Create an already-open blue gate in the hallway
     this.createOpenBlueGate();
 
@@ -576,32 +574,6 @@ export default class Level3Scene extends Scene {
     wallsLayer.setCollisionByExclusion([-1]);
   }
   
-  /**
-   * Show welcome message for Level 3
-   */
-  showWelcomeMessage() {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    const welcomeText = this.add.text(
-      width / 2,
-      height / 2,
-      "Welcome to Level 3!\nPrivacy Protection",
-      {
-        fontSize: '24px',
-        fontFamily: 'Arial',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-    
-    // Remove text after a few seconds
-    this.time.delayedCall(3000, () => {
-      welcomeText.destroy();
-    });
-  }
   
   /**
    * Create a return point to go back to Level 2
