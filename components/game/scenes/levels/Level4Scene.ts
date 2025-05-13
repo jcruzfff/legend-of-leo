@@ -16,7 +16,6 @@ export default class Level4Scene extends Scene {
   private map?: Phaser.Tilemaps.Tilemap;
   private layers?: MapLayers;
   private interactiveObjects: Phaser.GameObjects.GameObject[] = [];
-  private interactionIndicator?: Phaser.GameObjects.Sprite;
   private nearbyObject?: Phaser.GameObjects.GameObject;
   private keycard?: Phaser.GameObjects.Sprite;
   private hasKeycard: boolean = false;
@@ -25,6 +24,9 @@ export default class Level4Scene extends Scene {
   private doorActive: boolean = false;
   private debugCollisions: boolean = true; // Toggle for debugging collisions
   private debugGraphics?: Phaser.GameObjects.Graphics;
+  private guardNPC?: Phaser.GameObjects.Sprite;
+  // Remove the shared indicator and track object-specific indicators
+  private interactionIndicators: Map<Phaser.GameObjects.GameObject, Phaser.GameObjects.Sprite> = new Map();
 
   constructor() {
     super({ key: 'Level4Scene' });
@@ -366,78 +368,87 @@ export default class Level4Scene extends Scene {
    * Create a keycard that the player can collect
    */
   createKeycard() {
-    // Position the keycard in the left room
+    // Position the keycard terminal in the left room
     const tileSize = 48;
     const keycardX = 7.5 * tileSize;
     const keycardY = 3.5 * tileSize;
     
-    console.log('Creating keycard at:', keycardX, keycardY);
+    console.log('Creating keycard terminal at:', keycardX, keycardY);
     
-    // Create a sprite for the keycard
+    // Create a sprite for the keycard terminal
     this.keycard = this.add.sprite(keycardX, keycardY, 'backwall-keycard');
     
-    // Make it semi-visible to show interaction area
+    // Make it invisible but still interactive
     this.keycard.setAlpha(0);
     
-    // Add a subtle glow effect
-    const glowGraphics = this.add.graphics();
-    glowGraphics.strokeRect(keycardX - 24, keycardY - 24, 48, 48);
-    
-    // Add a pulsing animation to the glow
-    this.tweens.add({
-      targets: glowGraphics,
-      alpha: { from: 0.3, to: 0 },
-      duration: 1000,
-      yoyo: true,
-      repeat: -1
-    });
-    
-    // Make the keycard interactive
+    // Make it interactive
     this.keycard.setInteractive({ useHandCursor: true });
     
     // Add interactive behavior
     this.keycard.setData('interactive', true);
     this.keycard.setData('onInteract', () => {
-      this.collectKeycard();
+      this.useKeycardTerminal();
     });
     
     // Add to interactive objects array
     this.interactiveObjects.push(this.keycard);
+
+    // Create a dedicated indicator for the keycard terminal
+    this.createInteractionIndicator(this.keycard);
   }
   
   /**
-   * Player collects the keycard
+   * Use the keycard terminal - only works if player has keycard
+   */
+  useKeycardTerminal() {
+    if (!this.hasKeycard) {
+      // Show message that keycard is needed
+      const width = this.cameras.main.width;
+      const height = this.cameras.main.height;
+      
+      const lockedText = this.add.text(
+        width / 2,
+        height / 2,
+        "You need a keycard to use this terminal.",
+        {
+          fontSize: '18px',
+          color: '#FFFFFF',
+          backgroundColor: '#00000080',
+          padding: { x: 20, y: 10 },
+          align: 'center'
+        }
+      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+      
+      // Remove text after a few seconds
+      this.time.delayedCall(3000, () => {
+        lockedText.destroy();
+      });
+    } else {
+      // Player has keycard, unlock the exit gate
+      if (this.exitGate) {
+        this.unlockExitGate();
+      }
+    }
+  }
+  
+  /**
+   * Player collects the keycard from the guard
    */
   collectKeycard() {
     if (this.hasKeycard) return;
     
     this.hasKeycard = true;
-    console.log('Keycard collected!');
+    console.log('Keycard obtained from guard!');
     
     // Create a visual and text feedback
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    // Add a flash effect at the keycard location
-    if (this.keycard) {
-      const flash = this.add.sprite(this.keycard.x, this.keycard.y, 'backwall-keycard');
-      flash.setTint(0x00ff00);
-      flash.setAlpha(0.5);
-      
-      this.tweens.add({
-        targets: flash,
-        alpha: 0,
-        scale: 1.5,
-        duration: 500,
-        onComplete: () => flash.destroy()
-      });
-    }
-    
     // Show collection message
     const keycardText = this.add.text(
       width / 2,
       height / 2,
-      "Keycard collected!",
+      "Keycard obtained from guard!",
       {
         fontSize: '18px',
         color: '#FFFFFF',
@@ -451,33 +462,6 @@ export default class Level4Scene extends Scene {
     this.time.delayedCall(3000, () => {
       keycardText.destroy();
     });
-    
-    // Hide or remove the keycard interaction
-    if (this.keycard) {
-      // Fade out the keycard sprite
-      this.tweens.add({
-        targets: this.keycard,
-        alpha: 0,
-        scale: 0,
-        duration: 300,
-        onComplete: () => {
-          this.keycard?.destroy();
-          
-          // Remove from interactive objects array
-          const index = this.interactiveObjects.findIndex(obj => obj === this.keycard);
-          if (index !== -1) {
-            this.interactiveObjects.splice(index, 1);
-          }
-          
-          this.keycard = undefined;
-        }
-      });
-    }
-    
-    // Once the keycard is collected, unlock the exit gate
-    if (this.exitGate) {
-      this.unlockExitGate();
-    }
   }
   
   /**
@@ -612,8 +596,30 @@ export default class Level4Scene extends Scene {
       gateText.destroy();
     });
     
-    // Add a trigger zone after the gate to transition to the next level
-    this.createExitTriggerZone();
+    // The player now needs to walk through the gate to trigger the transition
+    // instead of immediately transitioning
+  }
+  
+  /**
+   * Check if player walks through the open exit gate to trigger level transition
+   */
+  checkPlayerExitGate() {
+    if (!this.player || !this.exitGate) return;
+    
+    // Only check if the gate is unlocked
+    if (this.exitGate.getData('isLocked')) return;
+    
+    // Check if player is within the gate bounds
+    const playerBounds = this.player.sprite.getBounds();
+    const gateBounds = this.exitGate.getBounds();
+    
+    if (Phaser.Geom.Rectangle.Overlaps(playerBounds, gateBounds)) {
+      // Prevent multiple transitions
+      if (this.exitGate.getData('transitioning')) return;
+      
+      this.exitGate.setData('transitioning', true);
+      this.transitionToNextLevel();
+    }
   }
   
   /**
@@ -679,8 +685,8 @@ export default class Level4Scene extends Scene {
     
     // Wait for fade to complete then change scene
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      // Go back to the main scene or to level 5 if it exists
-      this.scene.start('MainScene');
+      // Go to Level 5
+      this.scene.start('Level5Scene');
     });
   }
   
@@ -694,6 +700,11 @@ export default class Level4Scene extends Scene {
     const interactDistance = 60; // Interaction range
     let closestObject: Phaser.GameObjects.GameObject | undefined;
     let closestDistance = interactDistance;
+    
+    // First, hide all indicators
+    this.interactionIndicators.forEach(indicator => {
+      indicator.setVisible(false);
+    });
     
     // Find the closest interactive object in range
     this.interactiveObjects.forEach(obj => {
@@ -714,28 +725,32 @@ export default class Level4Scene extends Scene {
         objX, objY
       );
       
-      if (distance < closestDistance) {
-        closestObject = obj;
-        closestDistance = distance;
+      if (distance < interactDistance) {
+        // If object is in range, show its indicator
+        const indicator = this.interactionIndicators.get(obj);
+        if (indicator) {
+          // Update position (in case object moved)
+          indicator.setPosition(objX, objY - 40);
+          indicator.setVisible(true);
+        }
+        
+        // Track closest object for interaction
+        if (distance < closestDistance) {
+          closestObject = obj;
+          closestDistance = distance;
+        }
       }
     });
     
-    // If we found an object in range, show indicator
-    if (closestObject && closestObject !== this.nearbyObject) {
-      this.nearbyObject = closestObject;
-      this.showInteractionIndicator(closestObject);
-    } 
-    // If we moved out of range of the previous object
-    else if (!closestObject && this.nearbyObject) {
-      this.hideInteractionIndicator();
-      this.nearbyObject = undefined;
-    }
+    // Update the nearby object reference
+    this.nearbyObject = closestObject;
   }
   
   /**
-   * Show interaction indicator above an object
+   * Create an interaction indicator for a specific object
    */
-  showInteractionIndicator(object: Phaser.GameObjects.GameObject) {
+  createInteractionIndicator(object: Phaser.GameObjects.GameObject) {
+    // Get object position
     let objX = 0;
     let objY = 0;
     
@@ -752,62 +767,49 @@ export default class Level4Scene extends Scene {
     const x = objX;
     const y = objY - 40;
     
-    // If we don't have an indicator yet, create one
-    if (!this.interactionIndicator) {
-      // Create a simple indicator
-      this.interactionIndicator = this.add.sprite(x, y, 'interaction-indicator');
+    // Create indicator texture if it doesn't exist
+    if (!this.textures.exists('interaction-indicator')) {
+      const graphics = this.make.graphics({ x: 0, y: 0 });
       
-      if (!this.textures.exists('interaction-indicator')) {
-        const graphics = this.make.graphics({ x: 0, y: 0 });
-        
-        // Draw a small white dot with a glow effect
-        graphics.fillStyle(0xFFFFFF, 0.8);
-        graphics.fillCircle(16, 16, 4);
-        
-        // Add a subtle glow/halo
-        graphics.fillStyle(0xFFFFFF, 0.3);
-        graphics.fillCircle(16, 16, 8);
-        
-        graphics.generateTexture('interaction-indicator', 32, 32);
-      }
+      // Draw a small white dot with a glow effect
+      graphics.fillStyle(0xFFFFFF, 0.8);
+      graphics.fillCircle(16, 16, 4);
       
-      // Add a subtle bobbing animation
-      this.tweens.add({
-        targets: this.interactionIndicator,
-        y: y - 6,
-        duration: 1200,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      });
+      // Add a subtle glow/halo
+      graphics.fillStyle(0xFFFFFF, 0.3);
+      graphics.fillCircle(16, 16, 8);
       
-      // Add a subtle pulsing effect
-      this.tweens.add({
-        targets: this.interactionIndicator,
-        alpha: 0.6,
-        duration: 1000,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      });
+      graphics.generateTexture('interaction-indicator', 32, 32);
     }
     
-    // Set the texture and make visible
-    this.interactionIndicator.setTexture('interaction-indicator');
-    this.interactionIndicator.setVisible(true);
-    this.interactionIndicator.setPosition(x, y);
+    // Create a dedicated indicator for this object
+    const indicator = this.add.sprite(x, y, 'interaction-indicator');
+    indicator.setVisible(false); // Hide initially
+    indicator.setDepth(200); // High depth to ensure visibility
     
-    // Set high depth to ensure it's visible
-    this.interactionIndicator.setDepth(200);
-  }
-  
-  /**
-   * Hide the interaction indicator
-   */
-  hideInteractionIndicator() {
-    if (this.interactionIndicator) {
-      this.interactionIndicator.setVisible(false);
-    }
+    // Add animations
+    this.tweens.add({
+      targets: indicator,
+      y: y - 6,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    this.tweens.add({
+      targets: indicator,
+      alpha: 0.6,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    // Store the indicator reference
+    this.interactionIndicators.set(object, indicator);
+    
+    return indicator;
   }
   
   /**
@@ -832,7 +834,7 @@ export default class Level4Scene extends Scene {
     const bigDesk = this.add.image(deskX, deskY, 'big-desk');
     bigDesk.setDepth(5);
     const screensX = deskX;
-    const screensY = deskY - (tileSize * 1.6);
+    const screensY = deskY - (tileSize * 1.7);
     const bigScreens = this.add.image(screensX, screensY, 'big-screens');
     bigScreens.setDepth(6);
 
@@ -854,6 +856,9 @@ export default class Level4Scene extends Scene {
       this.showScreensMessage();
     });
     this.interactiveObjects.push(interactZone);
+    
+    // Create a dedicated indicator for the screens interaction
+    this.createInteractionIndicator(interactZone);
 
     console.log('Added furniture to right room:', { deskX, deskY, screensX, screensY, areaX, areaY, areaWidth, areaHeight });
   }
@@ -863,8 +868,216 @@ export default class Level4Scene extends Scene {
     const guardX = 1.5 * tileSize;
     const guardY = 10 * tileSize;
 
-    const guard = this.add.image(guardX, guardY, 'guard-l1');
-    guard.setDepth(5);
+    // Create the guard as a sprite so we can make it interactive
+    this.guardNPC = this.add.sprite(guardX, guardY, 'guard-l1');
+    this.guardNPC.setDepth(5);
+    
+    // Make the guard interactive
+    this.guardNPC.setInteractive({ useHandCursor: true });
+    this.guardNPC.setData('interactive', true);
+    this.guardNPC.setData('onInteract', () => {
+      this.talkToGuard();
+    });
+    
+    // Add to interactive objects array
+    this.interactiveObjects.push(this.guardNPC);
+    
+    // Create a dedicated indicator for the guard
+    this.createInteractionIndicator(this.guardNPC);
+    
+    console.log('Added interactive guard at:', guardX, guardY);
+  }
+
+  /**
+   * Handle dialogue with the guard
+   */
+  talkToGuard() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    if (!this.doorActive) {
+      // If the concrete door isn't open yet, guard won't help
+      const noAccessText = this.add.text(
+        width / 2,
+        height / 2,
+        "Guard: Sorry, I can't help you right now.\nThe secure area is locked.",
+        {
+          fontSize: '18px',
+          color: '#FFFFFF',
+          backgroundColor: '#00000080',
+          padding: { x: 20, y: 10 },
+          align: 'center'
+        }
+      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+      
+      // Remove text after a few seconds
+      this.time.delayedCall(3000, () => {
+        noAccessText.destroy();
+      });
+    } else if (this.hasKeycard) {
+      // If player already has the keycard
+      const alreadyHasText = this.add.text(
+        width / 2,
+        height / 2,
+        "Guard: You already have the keycard.\nUse it at the terminal to open the gate.",
+        {
+          fontSize: '18px',
+          color: '#FFFFFF',
+          backgroundColor: '#00000080',
+          padding: { x: 20, y: 10 },
+          align: 'center'
+        }
+      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+      
+      // Remove text after a few seconds
+      this.time.delayedCall(3000, () => {
+        alreadyHasText.destroy();
+      });
+    } else {
+      // Create an interactive dialogue box
+      const dialogueBox = this.add.rectangle(
+        width / 2,
+        height - 120,
+        width - 100,
+        150,
+        0x000000,
+        0.8
+      );
+      dialogueBox.setScrollFactor(0);
+      dialogueBox.setOrigin(0.5);
+      dialogueBox.setStrokeStyle(2, 0xFFFFFF);
+      
+      const message = "Guard: Congratulations for making it this far!\nWould you like to mint your graduation NFT?";
+      
+      const text = this.add.text(
+        width / 2,
+        height - 140,
+        message,
+        {
+          fontSize: '18px',
+          color: '#FFFFFF',
+          align: 'center',
+          wordWrap: { width: width - 150 }
+        }
+      );
+      text.setScrollFactor(0);
+      text.setOrigin(0.5);
+      
+      // Add "Mint" button
+      const mintButton = this.add.rectangle(
+        width / 2 - 70,
+        height - 80,
+        100,
+        40,
+        0x4CAF50
+      );
+      mintButton.setScrollFactor(0);
+      mintButton.setInteractive({ useHandCursor: true });
+      
+      const mintText = this.add.text(
+        width / 2 - 70,
+        height - 80, 
+        'Mint',
+        {
+          fontSize: '16px',
+          color: '#FFFFFF'
+        }
+      );
+      mintText.setScrollFactor(0);
+      mintText.setOrigin(0.5);
+      
+      // Add "Deny" button
+      const denyButton = this.add.rectangle(
+        width / 2 + 70,
+        height - 80,
+        100,
+        40,
+        0xF44336
+      );
+      denyButton.setScrollFactor(0);
+      denyButton.setInteractive({ useHandCursor: true });
+      
+      const denyText = this.add.text(
+        width / 2 + 70,
+        height - 80, 
+        'Deny',
+        {
+          fontSize: '16px',
+          color: '#FFFFFF'
+        }
+      );
+      denyText.setScrollFactor(0);
+      denyText.setOrigin(0.5);
+      
+      // Group all dialogue elements
+      const dialogueGroup = this.add.group([
+        dialogueBox, text, 
+        mintButton, mintText, 
+        denyButton, denyText
+      ]);
+      
+      // Handle "Mint" button click
+      mintButton.on('pointerdown', () => {
+        // Update the dialogue text to show minting in progress
+        text.setText("Minting your graduation NFT...");
+        
+        // Hide the buttons
+        mintButton.setVisible(false);
+        mintText.setVisible(false);
+        denyButton.setVisible(false);
+        denyText.setVisible(false);
+        
+        // After a short delay, show completion and give keycard
+        this.time.delayedCall(2000, () => {
+          dialogueGroup.destroy(true);
+          
+          // Show minting completion message
+          const mintingCompleteText = this.add.text(
+            width / 2,
+            height / 2,
+            "NFT Minted successfully!\nGuard: Here's your keycard as a reward!",
+            {
+              fontSize: '18px',
+              color: '#FFFFFF',
+              backgroundColor: '#00000080',
+              padding: { x: 20, y: 10 },
+              align: 'center'
+            }
+          ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+          
+          // Give the keycard after dialogue finishes
+          this.time.delayedCall(3000, () => {
+            mintingCompleteText.destroy();
+            this.collectKeycard();
+          });
+        });
+      });
+      
+      // Handle "Deny" button click
+      denyButton.on('pointerdown', () => {
+        // Close the dialogue without giving keycard
+        dialogueGroup.destroy(true);
+        
+        // Show a brief message
+        const denyText = this.add.text(
+          width / 2,
+          height / 2,
+          "Guard: No problem. Let me know if you change your mind.",
+          {
+            fontSize: '18px',
+            color: '#FFFFFF',
+            backgroundColor: '#00000080',
+            padding: { x: 20, y: 10 },
+            align: 'center'
+          }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+        
+        // Remove text after a few seconds
+        this.time.delayedCall(3000, () => {
+          denyText.destroy();
+        });
+      });
+    }
   }
 
   /**
@@ -873,24 +1086,244 @@ export default class Level4Scene extends Scene {
   showScreensMessage() {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
-    const msg = this.add.text(
+    
+    // Create a terminal-like interface
+    const terminalBackground = this.add.rectangle(
       width / 2,
       height / 2,
-      "You see a wall of screens displaying cryptic code...",
+      width - 100,
+      height - 150,
+      0x000000,
+      0.9
+    );
+    terminalBackground.setScrollFactor(0);
+    terminalBackground.setOrigin(0.5);
+    terminalBackground.setStrokeStyle(2, 0x00ff00); // Green border for terminal look
+    terminalBackground.setDepth(1000); // Set very high depth to appear above everything
+    
+    // Terminal header
+    const headerBar = this.add.rectangle(
+      width / 2,
+      height / 2 - (height - 180) / 2 + 15,
+      width - 110,
+      30,
+      0x333333,
+      1
+    );
+    headerBar.setScrollFactor(0);
+    headerBar.setOrigin(0.5);
+    headerBar.setDepth(1000);
+    
+    const terminalTitle = this.add.text(
+      width / 2,
+      height / 2 - (height - 180) / 2 + 15,
+      "Security Terminal Access",
+      {
+        fontSize: '16px',
+        color: '#00ff00',
+        fontFamily: 'monospace'
+      }
+    );
+    terminalTitle.setScrollFactor(0);
+    terminalTitle.setOrigin(0.5);
+    terminalTitle.setDepth(1000);
+    
+    // Welcome message
+    const welcomeText = this.add.text(
+      width / 2,
+      height / 2 - 80,
+      "Welcome to the Aleo Security Terminal.\nPlease select an option:",
       {
         fontSize: '18px',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
+        color: '#00ff00',
+        fontFamily: 'monospace',
         align: 'center'
       }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    );
+    welcomeText.setScrollFactor(0);
+    welcomeText.setOrigin(0.5);
+    welcomeText.setDepth(1000);
     
-    // After a brief delay, show door opening message and animate door
-    this.time.delayedCall(2500, () => {
-      msg.destroy();
+    // Create Explorer button
+    const explorerButton = this.add.rectangle(
+      width / 2,
+      height / 2 - 20,
+      200,
+      40,
+      0x333333
+    );
+    explorerButton.setScrollFactor(0);
+    explorerButton.setInteractive({ useHandCursor: true });
+    explorerButton.setDepth(1000);
+    
+    const explorerText = this.add.text(
+      width / 2,
+      height / 2 - 20,
+      "Explorer",
+      {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontFamily: 'monospace'
+      }
+    );
+    explorerText.setScrollFactor(0);
+    explorerText.setOrigin(0.5);
+    explorerText.setDepth(1001); // Even higher to ensure text is above its button
+    
+    // Create Playground button
+    const playgroundButton = this.add.rectangle(
+      width / 2,
+      height / 2 + 40,
+      200,
+      40,
+      0x333333
+    );
+    playgroundButton.setScrollFactor(0);
+    playgroundButton.setInteractive({ useHandCursor: true });
+    playgroundButton.setDepth(1000);
+    
+    const playgroundText = this.add.text(
+      width / 2,
+      height / 2 + 40,
+      "Playground",
+      {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontFamily: 'monospace'
+      }
+    );
+    playgroundText.setScrollFactor(0);
+    playgroundText.setOrigin(0.5);
+    playgroundText.setDepth(1001);
+    
+    // Create Continue button
+    const continueButton = this.add.rectangle(
+      width / 2,
+      height / 2 + 110,
+      200,
+      40,
+      0x004400
+    );
+    continueButton.setScrollFactor(0);
+    continueButton.setInteractive({ useHandCursor: true });
+    continueButton.setDepth(1000);
+    
+    const continueText = this.add.text(
+      width / 2,
+      height / 2 + 110,
+      "Continue",
+      {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontFamily: 'monospace'
+      }
+    );
+    continueText.setScrollFactor(0);
+    continueText.setOrigin(0.5);
+    continueText.setDepth(1001);
+    
+    // Group all dialogue elements
+    const terminalElements = this.add.group([
+      terminalBackground, headerBar, terminalTitle, welcomeText,
+      explorerButton, explorerText, playgroundButton, playgroundText,
+      continueButton, continueText
+    ]);
+    
+    // Handle Explorer button click
+    explorerButton.on('pointerover', () => {
+      explorerButton.setFillStyle(0x555555);
+    });
+    
+    explorerButton.on('pointerout', () => {
+      explorerButton.setFillStyle(0x333333);
+    });
+    
+    explorerButton.on('pointerdown', () => {
+      // Show a message that this would launch Explorer in a full implementation
+      const responseText = this.add.text(
+        width / 2,
+        height / 2 - 130,
+        "Explorer would open in a browser window\n(External URL will be added later)",
+        {
+          fontSize: '14px',
+          color: '#ffff00',
+          fontFamily: 'monospace',
+          align: 'center'
+        }
+      );
+      responseText.setScrollFactor(0);
+      responseText.setOrigin(0.5);
+      responseText.setDepth(1001);
+      
+      // Add to terminal elements group for cleanup
+      terminalElements.add(responseText);
+      
+      // Remove after 3 seconds
+      this.time.delayedCall(3000, () => {
+        responseText.destroy();
+      });
+    });
+    
+    // Handle Playground button click
+    playgroundButton.on('pointerover', () => {
+      playgroundButton.setFillStyle(0x555555);
+    });
+    
+    playgroundButton.on('pointerout', () => {
+      playgroundButton.setFillStyle(0x333333);
+    });
+    
+    playgroundButton.on('pointerdown', () => {
+      // Show a message that this would launch Playground in a full implementation
+      const responseText = this.add.text(
+        width / 2,
+        height / 2 - 130,
+        "Playground would open in a browser window\n(External URL will be added later)",
+        {
+          fontSize: '14px',
+          color: '#ffff00',
+          fontFamily: 'monospace',
+          align: 'center'
+        }
+      );
+      responseText.setScrollFactor(0);
+      responseText.setOrigin(0.5);
+      responseText.setDepth(1001);
+      
+      // Add to terminal elements group for cleanup
+      terminalElements.add(responseText);
+      
+      // Remove after 3 seconds
+      this.time.delayedCall(3000, () => {
+        responseText.destroy();
+      });
+    });
+    
+    // Handle Continue button click
+    continueButton.on('pointerover', () => {
+      continueButton.setFillStyle(0x006600);
+    });
+    
+    continueButton.on('pointerout', () => {
+      continueButton.setFillStyle(0x004400);
+    });
+    
+    continueButton.on('pointerdown', () => {
+      // Destroy the terminal interface
+      terminalElements.destroy(true);
+      
+      // Now open the concrete door
       this.openConcreteDoor();
     });
+    
+    // Add keyboard support for ESC key to close the terminal
+    const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    if (escKey) {
+      escKey.once('down', () => {
+        terminalElements.destroy(true);
+        this.input.keyboard?.removeKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+      });
+    }
   }
   
   /**
@@ -1030,5 +1463,66 @@ export default class Level4Scene extends Scene {
     
     // Check for nearby interactive objects
     this.checkInteractiveObjects();
+    
+    // Check if player walks through the exit gate
+    this.checkPlayerExitGate();
+  }
+
+  /**
+   * Clean up any game objects when the scene shuts down
+   */
+  shutdown() {
+    // Player cleanup
+    if (this.player && this.player.sprite) {
+      this.player.sprite.destroy();
+    }
+    
+    // Clean up all indicators
+    this.interactionIndicators.forEach(indicator => {
+      if (indicator) {
+        indicator.destroy();
+      }
+    });
+    this.interactionIndicators.clear();
+    
+    // Clear interactive objects array
+    this.interactiveObjects = [];
+    
+    // Remove keyboard events
+    const keyboard = this.input?.keyboard;
+    if (keyboard) {
+      keyboard.off('keydown-SPACE');
+      keyboard.off('keydown-E');
+    }
+  }
+
+  /**
+   * Initialize keyboard controls
+   */
+  setupControls() {
+    if (this.input && this.input.keyboard) {
+      this.cursors = this.input.keyboard.createCursorKeys();
+      
+      // Set up interaction key (E or SPACE)
+      this.input.keyboard.on('keydown-E', () => {
+        this.handleInteraction();
+      });
+      
+      this.input.keyboard.on('keydown-SPACE', () => {
+        this.handleInteraction();
+      });
+    }
+  }
+
+  /**
+   * Handle interaction with nearby objects
+   */
+  handleInteraction() {
+    if (this.nearbyObject) {
+      const onInteract = this.nearbyObject.getData('onInteract');
+      if (onInteract) {
+        onInteract();
+      }
+    }
   }
 } 
