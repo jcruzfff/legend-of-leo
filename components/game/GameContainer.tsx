@@ -148,10 +148,10 @@ const GameContainerClient = ({
     return (
       <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#2B2A3D' }}>
         <div className="text-center">
-          <div className="mb-4 text-primary-200 text-xl animate-pulse">
-            Loading game engine...
+          <div className="mb-4 text-white text-xl animate-pulse">
+            Loading...
           </div>
-          <div className="animate-spin w-10 h-10 border-4 border-primary-300 border-t-transparent rounded-full mx-auto"></div>
+          <div className="animate-spin w-10 h-10 border-4 border-white border-t-transparent rounded-full mx-auto"></div>
         </div>
       </div>
     );

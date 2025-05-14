@@ -1,0 +1,547 @@
+# Legend of Leo: NFT Minting Implementation Plan
+
+## Overview
+This document outlines the requirements and implementation plan for adding real NFT minting capabilities to the Legend of Leo game using the Aleo blockchain and the ARC-721 standard.
+
+## Goals
+- Implement real NFT minting on the Aleo blockchain from within our game
+- Create a "Graduation NFT" that can be minted when players complete Level 4
+- Use existing block explorer button in Level 5 to allow players to view their NFT transaction
+- Enhance player experience with blockchain interaction
+
+## Technical Requirements
+
+### 1. NFT Program Development
+
+#### 1.1 Create Leo Program
+Develop an NFT program in Leo following the ARC-721 standard:
+
+```leo
+// Legend of Leo NFT Program Structure (based on ARC-721)
+program legend_of_leo_nft.aleo {
+    // Define string type for NFT data
+    struct string {
+        data: [field; 4]
+    }
+
+    // Define attribute structure
+    struct attribute {
+        trait_type: [field; 4],
+        _value: [field; 4]
+    }
+
+    // Define data structure for NFT
+    struct data {
+        metadata: [field; 4], // URI of offchain metadata JSON
+        name: [field; 4],     // NFT name field
+        image: [field; 16],   // Image URI
+        attributes: [attribute; 4]
+    }
+
+    // Define NFT record
+    record NFT {
+        private owner: address,
+        private data: data,
+        private edition: scalar
+    }
+
+    // Define NFTView record for public transfers
+    record NFTView {
+        private owner: address,
+        private data: data,
+        private edition: scalar,
+        private is_view: bool
+    }
+
+    // Collection metadata
+    mapping general_settings: u8 => field;
+    
+    // NFT commits mapping for uniqueness
+    mapping nft_commits: field => bool;
+    
+    // NFT owners mapping for public ownership
+    mapping nft_owners: field => address;
+    
+    // NFT contents mapping for published data
+    mapping nft_contents: field => struct {
+        data: data,
+        edition: scalar
+    };
+
+    // Approval mappings
+    mapping for_all_approvals: field => bool;
+    mapping nft_approvals: field => field;
+
+    // Initialize function
+    transition initialize(
+        public name: [field; 4],
+        public symbol: [field; 4],
+        public max_supply: u128,
+        public admin: address
+    ) {
+        // Implementation for initialization
+        return;
+    }
+
+    // Basic functions:
+    // 1. mint_nft - Mint new NFT
+    transition mint_nft(
+        private receiver: address,
+        private nft_data: data,
+        private edition: scalar
+    ) -> NFT {
+        // Implementation for minting
+        // Check supply limits, uniqueness, etc.
+        
+        let new_nft: NFT = NFT {
+            owner: receiver,
+            data: nft_data,
+            edition: edition
+        };
+        
+        // Finalize minting
+        return new_nft;
+    }
+
+    // 2. transfer_private - Transfer NFT privately
+    transition transfer_private(
+        private nft: NFT,
+        private to: address,
+    ) -> NFT {
+        // Implementation for private transfer
+        return NFT {
+            owner: to,
+            data: nft.data,
+            edition: nft.edition
+        };
+    }
+
+    // 3. transfer_private_to_public - Convert private NFT to public ownership
+    transition transfer_private_to_public(
+        private nft: NFT,
+        public to: address,
+    ) -> (NFTView, field) {
+        // Implementation for private to public transfer
+        // Use commit_nft to compute NFT identifier
+        // Update nft_owners mapping
+        
+        let nft_view: NFTView = NFTView {
+            owner: to,
+            data: nft.data,
+            edition: nft.edition,
+            is_view: true
+        };
+        
+        return (nft_view, commit_nft(nft.data, nft.edition));
+    }
+
+    // Add additional functions as needed:
+    // - approve_public
+    // - transfer_from_public
+    // - publish_nft_content
+    // - additional helper functions
+}
+```
+
+#### 1.2 Create Metadata Format
+Define the NFT metadata structure:
+
+```json
+{
+  "name": "Legend of Leo Graduation Certificate",
+  "description": "This NFT certifies the completion of the Legend of Leo blockchain education game",
+  "image": "https://gateway.ipfs.io/ipfs/[CID-of-art]",
+  "attributes": [
+    {"trait_type": "Level", "value": "Graduate"},
+    {"trait_type": "Completion Date", "value": "Dynamic"},
+    {"trait_type": "Game Version", "value": "1.0"},
+    {"trait_type": "Special Skill", "value": "Blockchain Explorer"}
+  ]
+}
+```
+
+### 2. Infrastructure Setup
+
+#### 2.1 Deployment Requirements
+- Aleo development environment (Rust, snarkVM, snarkOS, Leo)
+- Testnet credits for deployment (≈70 credits)
+- Puzzle Wallet with sufficient balance
+- IPFS provider for NFT metadata storage
+
+#### 2.2 Deploy NFT Program
+```bash
+snarkos developer deploy "legend_of_leo_nft.aleo" --private-key "WALLET_PRIVATE_KEY" --query "https://api.explorer.aleo.org/v1" --broadcast "https://api.explorer.aleo.org/v1/testnet3/transaction/broadcast" --priority-fee 16000000
+```
+
+### 3. Frontend Integration
+
+#### 3.1 Wallet Functions
+Extend the existing wallet integration in `walletBridge.ts` to support NFT minting:
+
+```typescript
+// Add new functions to walletBridge.ts
+
+// Prepare NFT data
+export async function prepareNFTData(playerName: string): Promise<any> {
+  // Create NFT data structure based on ARC-721 format
+  const timestamp = new Date().toISOString();
+  
+  // Generate proper Aleo format for NFT data
+  // ... implementation ...
+  
+  return nftData;
+}
+
+// Mint NFT
+export async function mintNFT(walletAddress: string, nftData: any): Promise<string> {
+  if (typeof window === 'undefined' || !window.puzzle) {
+    throw new Error('Puzzle wallet not available');
+  }
+  
+  // Prepare transaction for mint_nft function on our program
+  const inputs = [
+    walletAddress, // receiver
+    nftData,       // data
+    // Use a unique edition value (could be a hash of playerName + timestamp)
+    generateEdition(walletAddress, nftData)
+  ];
+  
+  try {
+    // Create and execute transaction
+    const tx = await window.puzzle.execute({
+      program: 'legend_of_leo_nft.aleo',
+      function: 'mint_nft',
+      inputs,
+      fee: 3000000 // Appropriate fee for minting
+    });
+    
+    // Return the transaction ID
+    return tx.id;
+  } catch (error) {
+    console.error('Error minting NFT:', error);
+    throw error;
+  }
+}
+
+// Get NFT transaction details
+export async function getNFTTransactionDetails(txId: string): Promise<any> {
+  try {
+    const response = await fetch(`https://api.explorer.aleo.org/v1/transaction/${txId}`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching transaction details:', error);
+    throw error;
+  }
+}
+```
+
+#### 3.2 Update Level 4 Scene
+Modify Level4Scene.ts to integrate NFT minting:
+
+```typescript
+// Add transaction state tracking to Level4Scene
+private nftMintingInProgress: boolean = false;
+private nftTransactionId: string | null = null;
+private nftMintingSuccess: boolean = false;
+private nftMintingError: string | null = null;
+
+// Modify the guard interaction dialog
+talkToGuard() {
+  // ...existing code...
+  
+  // Handle "Mint" button click
+  mintButton.on('pointerdown', async () => {
+    // Update the dialogue text to show minting in progress
+    text.setText("Preparing to mint your graduation NFT...");
+    
+    // Hide the buttons
+    mintButton.setVisible(false);
+    mintText.setVisible(false);
+    denyButton.setVisible(false);
+    denyText.setVisible(false);
+    
+    // Show loading indicator
+    const loadingSpinner = this.add.sprite(width / 2, height - 40, 'loading-spinner');
+    // ... animation setup for spinner ...
+    dialogueGroup.add(loadingSpinner);
+    
+    try {
+      this.nftMintingInProgress = true;
+      
+      // Get player name from game context or use default
+      const playerName = this.registry.get('playerName') || 'Leo Explorer';
+      
+      // Prepare NFT data
+      const nftData = await prepareNFTData(playerName);
+      
+      // Get wallet address from context
+      const walletAddress = this.registry.get('walletAddress');
+      if (!walletAddress) {
+        throw new Error('Wallet not connected');
+      }
+      
+      // Attempt to mint NFT
+      text.setText("Minting NFT on Aleo blockchain...\nThis will open your wallet for approval.");
+      
+      // Perform the actual minting
+      const txId = await mintNFT(walletAddress, nftData);
+      
+      // Store transaction ID for later reference
+      this.nftTransactionId = txId;
+      this.nftMintingSuccess = true;
+      
+      // Update game state to store NFT info
+      this.registry.set('nftTransactionId', txId);
+      
+      // Show success and close dialog
+      dialogueGroup.destroy(true);
+      
+      // Show success message
+      const successText = this.add.text(
+        width / 2,
+        height / 2,
+        "NFT Minted successfully!\nTransaction ID: " + txId.substring(0, 10) + "...\n\nGuard: Here's your keycard as a reward!",
+        {
+          fontSize: '18px',
+          color: '#FFFFFF',
+          backgroundColor: '#00000080',
+          padding: { x: 20, y: 10 },
+          align: 'center'
+        }
+      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+      
+      // Give keycard
+      this.time.delayedCall(3000, () => {
+        successText.destroy();
+        this.collectKeycard();
+      });
+      
+    } catch (error) {
+      console.error('NFT Minting error:', error);
+      this.nftMintingError = error.message || 'Unknown error occurred';
+      this.nftMintingInProgress = false;
+      
+      // Show error message
+      text.setText(`Error minting NFT: ${this.nftMintingError}\n\nGuard: Let's try again later. Here's your keycard anyway.`);
+      
+      // Still give keycard after a delay
+      this.time.delayedCall(3000, () => {
+        dialogueGroup.destroy(true);
+        this.collectKeycard();
+      });
+    }
+  });
+  
+  // ... existing code for deny button ...
+}
+```
+
+#### 3.3 Update Level 5 Scene
+Modify Level5Scene.ts to link the existing block explorer button to the NFT transaction:
+
+```typescript
+// Add to big-screens interaction in Level 5
+showScreensMessage() {
+  // ... existing terminal setup code ...
+  
+  // Add a new "View NFT Transaction" button in the terminal
+  const viewNFTButton = this.add.rectangle(
+    width / 2,
+    height / 2 - 80,
+    200,
+    40,
+    0x333333
+  );
+  viewNFTButton.setScrollFactor(0);
+  viewNFTButton.setInteractive({ useHandCursor: true });
+  viewNFTButton.setDepth(1000);
+  
+  const viewNFTText = this.add.text(
+    width / 2,
+    height / 2 - 80,
+    "View NFT Transaction",
+    {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontFamily: 'monospace'
+    }
+  );
+  viewNFTText.setScrollFactor(0);
+  viewNFTText.setOrigin(0.5);
+  viewNFTText.setDepth(1001);
+  
+  // Add button to terminal elements
+  terminalElements.add(viewNFTButton);
+  terminalElements.add(viewNFTText);
+  
+  // Handle View NFT Transaction button click
+  viewNFTButton.on('pointerover', () => {
+    viewNFTButton.setFillStyle(0x555555);
+  });
+  
+  viewNFTButton.on('pointerout', () => {
+    viewNFTButton.setFillStyle(0x333333);
+  });
+  
+  viewNFTButton.on('pointerdown', () => {
+    // Check if NFT was minted
+    const txId = this.registry.get('nftTransactionId');
+    
+    if (!txId) {
+      // Show message that no NFT has been minted
+      const noNFTText = this.add.text(
+        width / 2,
+        height / 2 - 130,
+        "No NFT transaction found.\nYou need to mint an NFT in Level 4 first.",
+        {
+          fontSize: '14px',
+          color: '#ffff00',
+          fontFamily: 'monospace',
+          align: 'center'
+        }
+      );
+      noNFTText.setScrollFactor(0);
+      noNFTText.setOrigin(0.5);
+      noNFTText.setDepth(1001);
+      
+      // Add to terminal elements and remove after 3 seconds
+      terminalElements.add(noNFTText);
+      this.time.delayedCall(3000, () => {
+        noNFTText.destroy();
+      });
+      return;
+    }
+    
+    // Generate explorer URL
+    const explorerUrl = `https://explorer.aleo.org/transaction/${txId}`;
+    
+    // Show confirmation message with transaction link
+    const confirmationText = this.add.text(
+      width / 2,
+      height / 2 - 130,
+      "Opening transaction in Aleo Explorer...",
+      {
+        fontSize: '14px',
+        color: '#00ff00',
+        fontFamily: 'monospace',
+        align: 'center'
+      }
+    );
+    confirmationText.setScrollFactor(0);
+    confirmationText.setOrigin(0.5);
+    confirmationText.setDepth(1001);
+    terminalElements.add(confirmationText);
+    
+    // Simulate opening the link
+    // In a real deployment, this would trigger window.open(explorerUrl, '_blank')
+    // or use the wallet's internal browser functionality
+    
+    // For now, just show the URL for reference
+    const urlText = this.add.text(
+      width / 2,
+      height / 2 - 100,
+      explorerUrl,
+      {
+        fontSize: '10px',
+        color: '#aaaaaa',
+        fontFamily: 'monospace',
+        align: 'center'
+      }
+    );
+    urlText.setScrollFactor(0);
+    urlText.setOrigin(0.5);
+    urlText.setDepth(1001);
+    terminalElements.add(urlText);
+    
+    // Remove messages after a few seconds
+    this.time.delayedCall(5000, () => {
+      confirmationText.destroy();
+      urlText.destroy();
+    });
+  });
+  
+  // ... existing code for other buttons ...
+}
+```
+
+### 4. Testing and Release Plan
+
+#### 4.1 Testing Requirements
+- Test NFT minting on Aleo testnet
+- Verify transaction appears on explorer
+- Test with minimal funds to avoid wastage
+- Test error handling (rejected transactions, network issues)
+- Test wallet connections and disconnections
+
+#### 4.2 Integration Testing
+1. Test wallet connection in Level 2
+2. Test progression to Level 4
+3. Test NFT minting interaction with guard
+4. Test transaction viewing in Level 5 screens
+5. Test explorer integration
+
+#### 4.3 Release Steps
+1. Deploy NFT program to testnet
+2. Test comprehensive game flow
+3. Update game documentation with NFT details
+4. Create tutorial for users to understand NFT value
+5. Monitor initial transactions for any issues
+
+## Implementation Timeline
+
+1. **Week 1: Development**
+   - Set up Leo development environment
+   - Develop and test NFT program locally
+   - Create test NFT metadata
+
+2. **Week 2: Blockchain Deployment**
+   - Deploy NFT program to testnet
+   - Test minting with test accounts
+   - Verify explorer integration
+
+3. **Week 3: Game Integration**
+   - Implement wallet bridge extensions
+   - Update Level 4 with minting UI
+   - Update Level 5 with transaction display
+
+4. **Week 4: Testing & Polish**
+   - End-to-end testing
+   - Bug fixes and performance optimization
+   - Documentation updates
+   - User guides
+
+## Future Enhancements
+
+1. **NFT Gallery**
+   - Add a dedicated screen to view owned NFTs
+   - Support for viewing NFTs from other players
+
+2. **NFT Trading**
+   - Implement NFT trading between players
+   - Marketplace integration
+
+3. **NFT Evolution**
+   - Allow NFTs to gain new attributes as players progress
+   - Special edition NFTs for achievements
+
+4. **Multi-chain Support**
+   - Expand to support additional privacy-focused blockchains
+
+## Risks and Mitigations
+
+1. **Blockchain Costs**
+   - Risk: Transaction fees may be prohibitive
+   - Mitigation: Implement batch minting, optimize gas usage
+
+2. **Wallet Integration Issues**
+   - Risk: Puzzle Wallet API changes
+   - Mitigation: Regular testing, fallback mechanisms
+
+3. **Transaction Delays**
+   - Risk: Network congestion slowing transactions
+   - Mitigation: Proper loading states, timeout handling
+
+4. **User Experience**
+   - Risk: Complex blockchain interactions confusing users
+   - Mitigation: Clear tutorials, simplified UI, helpful error messages 
