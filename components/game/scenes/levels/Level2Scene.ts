@@ -710,17 +710,17 @@ export default class Level2Scene extends Scene {
     // Determine message based on wallet connection state
     if (this.walletService.isConnected() && this.messageSigned) {
       // Wallet is connected and message is signed - provide keycard
-      message = `Welcome! Your identity has been verified with address ${this.walletService.formatAddress(this.walletService.getAddress() || 'unknown')}. Your security keycard is ready to use.`;
+      message = `Access granted. Your identity has been confirmed as ${this.walletService.formatAddress(this.walletService.getAddress() || 'unknown')}. Your secret keys must be used wisely out there!`;
       buttonText = 'Take Keycard';
       buttonColor = 0x4CAF50; // Green
     } else if (this.walletService.isConnected() && !this.messageSigned) {
       // Wallet is connected but signature needed
-      message = `Please sign a message to verify your identity and gain access to secured areas.`;
+      message = `"In this world, nothing moves without proof. Sign this message to prove your ownership and set up your privacy key"`;
       buttonText = 'Sign Message';
       buttonColor = 0x2196F3; // Blue
     } else {
       // Wallet not connected
-      message = 'Welcome to the Digital Defense Center! Please connect your Puzzle wallet to verify your identity and receive a security keycard.';
+      message = 'Aleo\'s Digital Defense only allows access to the encrypted world to those who have proven their identity. Connect your wallet to continue.';
       buttonText = 'Connect Wallet';
       buttonColor = 0xFFA000; // Orange
     }
@@ -733,7 +733,7 @@ export default class Level2Scene extends Scene {
         fontSize: '24px',
         color: '#FFFFFF',
         align: 'center',
-        wordWrap: { width: width - 60 },
+        wordWrap: { width: width - 100 },
         lineSpacing: 8
       }
     );
@@ -806,7 +806,7 @@ export default class Level2Scene extends Scene {
       } 
       else if (this.walletService.isConnected() && !this.messageSigned) {
         // If wallet connected but message not signed, request signature
-        const message = "I verify my identity to access the Digital Defense Center";
+        const message = "I verify my identity to access the Aleo's Digital Defense";
         const signatureResponse = await this.walletService.signMessage(message);
         
         if (signatureResponse) {

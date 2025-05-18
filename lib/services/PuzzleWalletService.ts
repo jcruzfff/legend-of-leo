@@ -283,6 +283,32 @@ export class PuzzleWalletService {
   }
   
   /**
+   * Check if the wallet has any Aleo credits available
+   * @param minAmount Optional minimum amount required (default: 0.01)
+   * @returns True if the wallet has sufficient credits
+   */
+  public hasAleoCredits(minAmount: number = 0.01): boolean {
+    if (!this.balances.length) {
+      return false;
+    }
+    
+    // Look for Aleo credits in the balances
+    const credits = this.balances.find(balance => 
+      balance.coinbaseSymbol === 'credits' || 
+      balance.name.toLowerCase().includes('credit') ||
+      balance.symbol?.toLowerCase().includes('credit')
+    );
+    
+    if (!credits) {
+      return false;
+    }
+    
+    // Check if the combined balance (public + private) is greater than or equal to minAmount
+    const totalBalance = credits.values.private + credits.values.public;
+    return totalBalance >= minAmount;
+  }
+  
+  /**
    * Format wallet address to show only beginning and end
    */
   public formatAddress(address: string): string {

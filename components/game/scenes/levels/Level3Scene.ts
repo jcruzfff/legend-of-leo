@@ -408,24 +408,24 @@ export default class Level3Scene extends Scene {
     
     const dialogueBox = this.add.rectangle(
       width / 2,
-      height - 100,
-      width - 100,
-      120,
+      height - 250,
+      width - 30,
+      400,
       0x000000,
-      0.7
+      0.9
     );
     dialogueBox.setScrollFactor(0);
     dialogueBox.setOrigin(0.5);
     dialogueBox.setStrokeStyle(2, 0xFFFFFF);
     
-    const message = "There are some interesting docs here to learn about making private applications on Aleo. These tools allow developers to build apps that protect user privacy.";
+      const message = "Aleo is like the lego building blocks for users to take advantage of private, decentralized apps that use zero-knowledge cryptography — a shield against surveillance, exposure, and manipulation.\n\nThis isn't just about code. It's about control. It's about giving users the power to prove things without revealing everything.\n\nHere, privacy isn't a feature. It's the foundation.";
     
     const text = this.add.text(
       width / 2,
-      height - 100,
+      height - 240,
       message,
       {
-        fontSize: '16px',
+        fontSize: '24px',
         color: '#FFFFFF',
         align: 'center',
         wordWrap: { width: width - 150 }
@@ -437,7 +437,7 @@ export default class Level3Scene extends Scene {
     // Add a continue button
     const continueButton = this.add.rectangle(
       width / 2,
-      height - 40,
+      height - 55,
       120,
       30,
       0x4CAF50
@@ -447,7 +447,7 @@ export default class Level3Scene extends Scene {
     
     const buttonText = this.add.text(
       width / 2,
-      height - 40, 
+      height - 55, 
       'Continue',
       {
         fontSize: '14px',

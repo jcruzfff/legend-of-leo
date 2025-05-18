@@ -5,12 +5,7 @@ import { loadTilemap, addCollision, MapLayers } from '@/lib/utils/mapLoader';
 import Player from '@/lib/classes/Player';
 import { PuzzleWalletService } from '@/lib/services/PuzzleWalletService';
 
-/**
- * Level4Scene - Advanced Topics
- * 
- * This is the fourth level of the Legend of Leo game.
- * Players learn about advanced privacy topics and concepts.
- */
+
 export default class Level4Scene extends Scene {
   private player?: Player;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -53,6 +48,33 @@ export default class Level4Scene extends Scene {
     // Initialize interactive objects array
     this.interactiveObjects = [];
     this.hasKeycard = false;
+    
+    // Check if wallet was previously connected and try to reconnect
+    this.attemptWalletReconnection();
+  }
+
+  /**
+   * Attempt to reconnect to wallet if previously connected
+   */
+  private async attemptWalletReconnection() {
+    try {
+      console.log('[Level4Scene] Attempting to reconnect to wallet...');
+      // Force a thorough check by setting skipApiCall to false
+      const connected = await this.walletService.refreshConnection(false);
+      
+      if (connected) {
+        console.log('[Level4Scene] Successfully reconnected to wallet');
+        this.walletConnected = true;
+        this.walletAddress = this.walletService.getAddress() || '';
+        
+        // Fetch balances to make sure they're up to date
+        await this.walletService.fetchBalances();
+      } else {
+        console.log('[Level4Scene] No previous wallet connection found');
+      }
+    } catch (error) {
+      console.error('[Level4Scene] Error reconnecting to wallet:', error);
+    }
   }
 
   preload() {
@@ -119,6 +141,32 @@ export default class Level4Scene extends Scene {
         spacing: 0,
         margin: 0
       });
+    }
+    
+    // Load terminal logos
+    if (!textureCheck('explorer-logo')) {
+      this.load.image('explorer-logo', '/assets/ui/explorer-logo.png');
+    }
+    
+    if (!textureCheck('playground-logo')) {
+      this.load.image('playground-logo', '/assets/ui/playground-logo.png');
+    }
+    
+    if (!textureCheck('faucet-logo')) {
+      this.load.image('faucet-logo', '/assets/ui/faucet-logo.png');
+    }
+    
+    // Load faucet guide step images
+    if (!textureCheck('faucet-step1-img')) {
+      this.load.image('faucet-step1-img', '/assets/ui/faucet-step1.png');
+    }
+    
+    if (!textureCheck('faucet-step2-img')) {
+      this.load.image('faucet-step2-img', '/assets/ui/faucet-step2.png');
+    }
+    
+    if (!textureCheck('faucet-step3-img')) {
+      this.load.image('faucet-step3-img', '/assets/ui/faucet-step3.png');
     }
 
     // Load border tiles
@@ -223,7 +271,7 @@ export default class Level4Scene extends Scene {
     }
     
     // Show welcome message for level 4
-    this.showWelcomeMessage();
+
     
     // Create the keycard
     this.createKeycard();
@@ -347,33 +395,7 @@ export default class Level4Scene extends Scene {
     // Set collision for wall layer
     wallsLayer.setCollisionByExclusion([-1]);
   }
-  
-  /**
-   * Show welcome message for level 4
-   */
-  showWelcomeMessage() {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    const welcomeText = this.add.text(
-      width / 2,
-      height / 2,
-      "Welcome to Level 4!\nAdvanced Privacy Concepts",
-      {
-        fontSize: '24px',
-        fontFamily: 'Arial',
-        color: '#FFFFFF',
-        backgroundColor: '#00000080',
-        padding: { x: 20, y: 10 },
-        align: 'center'
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-    
-    // Remove text after a few seconds
-    this.time.delayedCall(3000, () => {
-      welcomeText.destroy();
-    });
-  }
+
   
   /**
    * Create a keycard that the player can collect
@@ -944,9 +966,9 @@ export default class Level4Scene extends Scene {
       // Create an interactive dialogue box for NFT minting
       const dialogueBox = this.add.rectangle(
         width / 2,
-        height - 120,
+        height - 150,
         width - 100,
-        150,
+        200,
         0x000000,
         0.8
       );
@@ -958,10 +980,10 @@ export default class Level4Scene extends Scene {
       
       const text = this.add.text(
         width / 2,
-        height - 140,
+        height - 180,
         message,
         {
-          fontSize: '18px',
+          fontSize: '24px',
           color: '#FFFFFF',
           align: 'center',
           wordWrap: { width: width - 150 }
@@ -973,7 +995,7 @@ export default class Level4Scene extends Scene {
       // Add "Mint" button
       const mintButton = this.add.rectangle(
         width / 2 - 70,
-        height - 80,
+        height - 100,
         100,
         40,
         0x4CAF50
@@ -983,7 +1005,7 @@ export default class Level4Scene extends Scene {
       
       const mintText = this.add.text(
         width / 2 - 70,
-        height - 80, 
+        height - 100, 
         'Mint',
         {
           fontSize: '16px',
@@ -996,7 +1018,7 @@ export default class Level4Scene extends Scene {
       // Add "Deny" button
       const denyButton = this.add.rectangle(
         width / 2 + 70,
-        height - 80,
+        height - 100,
         100,
         40,
         0xF44336
@@ -1006,7 +1028,7 @@ export default class Level4Scene extends Scene {
       
       const denyText = this.add.text(
         width / 2 + 70,
-        height - 80, 
+        height - 100, 
         'Deny',
         {
           fontSize: '16px',
@@ -1043,24 +1065,6 @@ export default class Level4Scene extends Scene {
           this.mintDialogueGroup = undefined;
         }
         
-        // Show a message about declining
-        const declineText = this.add.text(
-          width / 2,
-          height / 2,
-          "You declined to mint the NFT. Talk to the guard again if you change your mind.",
-          {
-            fontSize: '18px',
-            color: '#FFFFFF',
-            backgroundColor: '#00000080',
-            padding: { x: 20, y: 10 },
-            align: 'center'
-          }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-        
-        // Remove the text after a few seconds
-        this.time.delayedCall(3000, () => {
-          declineText.destroy();
-        });
       });
       
       // Add hover effects
@@ -1099,6 +1103,77 @@ export default class Level4Scene extends Scene {
         
         this.walletConnected = true;
         this.walletAddress = this.walletService.getAddress() || '';
+      }
+      
+      // Fetch latest balances to ensure we have current data
+      await this.walletService.fetchBalances();
+      
+      // Check if the wallet has sufficient Aleo credits
+      console.log('[Level4Scene] Checking if wallet has sufficient Aleo credits');
+      const hasCredits = this.walletService.hasAleoCredits();
+      console.log('[Level4Scene] Has sufficient credits:', hasCredits);
+      
+      if (!hasCredits) {
+        // If no credits, show error and recommend going to the faucet
+        dialogueText.setText("Your wallet doesn't have enough Aleo credits to mint.\nPlease visit the faucet terminal to get some tokens first.");
+        
+        // Get and display all balances for debugging
+        const balances = this.walletService.getBalances();
+        console.log('[Level4Scene] All wallet balances:', balances);
+        
+        // Create a close button to dismiss this message
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+        
+        const closeButton = this.add.rectangle(
+          width / 2,
+          height - 70,
+          120,
+          40,
+          0x555555
+        );
+        closeButton.setScrollFactor(0);
+        closeButton.setInteractive({ useHandCursor: true });
+        
+        const closeText = this.add.text(
+          width / 2,
+          height - 70,
+          "Close",
+          {
+            fontSize: '16px',
+            color: '#FFFFFF',
+            align: 'center'
+          }
+        );
+        closeText.setScrollFactor(0);
+        closeText.setOrigin(0.5);
+        
+        // Add hover effects
+        closeButton.on('pointerover', () => {
+          closeButton.setFillStyle(0x777777);
+        });
+        
+        closeButton.on('pointerout', () => {
+          closeButton.setFillStyle(0x555555);
+        });
+        
+        // Handle close button click
+        closeButton.on('pointerdown', () => {
+          if (this.mintDialogueGroup) {
+            this.mintDialogueGroup.destroy(true);
+            this.mintDialogueGroup = undefined;
+          }
+          closeButton.destroy();
+          closeText.destroy();
+        });
+        
+        // Add to mintDialogueGroup if it exists
+        if (this.mintDialogueGroup) {
+          this.mintDialogueGroup.add(closeButton);
+          this.mintDialogueGroup.add(closeText);
+        }
+        
+        return; // Exit the function early - can't mint without credits
       }
       
       // Now try to mint the NFT
@@ -1245,10 +1320,10 @@ export default class Level4Scene extends Scene {
     terminalTitle.setOrigin(0.5);
     terminalTitle.setDepth(1000);
     
-    // Welcome message
+    // Welcome message - moved closer to the top
     const welcomeText = this.add.text(
       width / 2,
-      height / 2 - 80,
+      height / 2 - 120,
       "Welcome to the Aleo Security Terminal.\nPlease select an option:",
       {
         fontSize: '18px',
@@ -1261,21 +1336,26 @@ export default class Level4Scene extends Scene {
     welcomeText.setOrigin(0.5);
     welcomeText.setDepth(1000);
     
-    // Create Explorer button
-    const explorerButton = this.add.rectangle(
-      width / 2,
-      height / 2 - 20,
-      200,
-      40,
-      0x333333
+    // Calculate spacing for horizontal layout
+    const logoSize = 120; // Size for each logo
+    const spacing = 30; // Space between logos
+    const totalWidth = (logoSize * 3) + (spacing * 2); // Total width of all logos and spacing
+    const startX = width / 2 - totalWidth / 2 + logoSize / 2; // Starting X position for first logo
+    
+    // Create Explorer logo button
+    const explorerLogo = this.add.image(
+      startX,
+      height / 2 - 20 + 24, // Move down 24px
+      'explorer-logo'
     );
-    explorerButton.setScrollFactor(0);
-    explorerButton.setInteractive({ useHandCursor: true });
-    explorerButton.setDepth(1000);
+    explorerLogo.setDisplaySize(logoSize, logoSize);
+    explorerLogo.setScrollFactor(0);
+    explorerLogo.setInteractive({ useHandCursor: true });
+    explorerLogo.setDepth(1000);
     
     const explorerText = this.add.text(
-      width / 2,
-      height / 2 - 20,
+      startX,
+      height / 2 + 50 + 38, // Move down 48px total (24px from original + 24px extra)
       "Explorer",
       {
         fontSize: '16px',
@@ -1285,23 +1365,22 @@ export default class Level4Scene extends Scene {
     );
     explorerText.setScrollFactor(0);
     explorerText.setOrigin(0.5);
-    explorerText.setDepth(1001); // Even higher to ensure text is above its button
+    explorerText.setDepth(1000);
     
-    // Create Playground button
-    const playgroundButton = this.add.rectangle(
-      width / 2,
-      height / 2 + 40,
-      200,
-      40,
-      0x333333
+    // Create Playground logo button
+    const playgroundLogo = this.add.image(
+      startX + logoSize + spacing,
+      height / 2 - 20 + 24, // Move down 24px
+      'playground-logo'
     );
-    playgroundButton.setScrollFactor(0);
-    playgroundButton.setInteractive({ useHandCursor: true });
-    playgroundButton.setDepth(1000);
+    playgroundLogo.setDisplaySize(logoSize, logoSize);
+    playgroundLogo.setScrollFactor(0);
+    playgroundLogo.setInteractive({ useHandCursor: true });
+    playgroundLogo.setDepth(1000);
     
     const playgroundText = this.add.text(
-      width / 2,
-      height / 2 + 40,
+      startX + logoSize + spacing,
+      height / 2 + 50 + 38, // Move down 48px total
       "Playground",
       {
         fontSize: '16px',
@@ -1311,12 +1390,37 @@ export default class Level4Scene extends Scene {
     );
     playgroundText.setScrollFactor(0);
     playgroundText.setOrigin(0.5);
-    playgroundText.setDepth(1001);
+    playgroundText.setDepth(1000);
+    
+    // Create Faucet logo button
+    const faucetLogo = this.add.image(
+      startX + (logoSize + spacing) * 2,
+      height / 2 - 20 + 24, // Move down 24px
+      'faucet-logo'
+    );
+    faucetLogo.setDisplaySize(logoSize, logoSize);
+    faucetLogo.setScrollFactor(0);
+    faucetLogo.setInteractive({ useHandCursor: true });
+    faucetLogo.setDepth(1000);
+    
+    const faucetText = this.add.text(
+      startX + (logoSize + spacing) * 2,
+      height / 2 + 50 + 38, // Move down 48px total
+      "Faucet",
+      {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontFamily: 'monospace'
+      }
+    );
+    faucetText.setScrollFactor(0);
+    faucetText.setOrigin(0.5);
+    faucetText.setDepth(1000);
     
     // Create Continue button
     const continueButton = this.add.rectangle(
       width / 2,
-      height / 2 + 110,
+      height / 2 + 140 + 32, // Move down 48px
       200,
       40,
       0x004400
@@ -1327,7 +1431,7 @@ export default class Level4Scene extends Scene {
     
     const continueText = this.add.text(
       width / 2,
-      height / 2 + 110,
+      height / 2 + 140 + 32, // Move down 48px
       "Continue",
       {
         fontSize: '16px',
@@ -1342,81 +1446,78 @@ export default class Level4Scene extends Scene {
     // Group all dialogue elements
     const terminalElements = this.add.group([
       terminalBackground, headerBar, terminalTitle, welcomeText,
-      explorerButton, explorerText, playgroundButton, playgroundText,
+      explorerLogo, explorerText, playgroundLogo, playgroundText,
+      faucetLogo, faucetText,
       continueButton, continueText
     ]);
     
-    // Handle Explorer button click
-    explorerButton.on('pointerover', () => {
-      explorerButton.setFillStyle(0x555555);
-    });
-    
-    explorerButton.on('pointerout', () => {
-      explorerButton.setFillStyle(0x333333);
-    });
-    
-    explorerButton.on('pointerdown', () => {
-      // Show a message that this would launch Explorer in a full implementation
-      const responseText = this.add.text(
-        width / 2,
-        height / 2 - 130,
-        "Explorer would open in a browser window\n(External URL will be added later)",
-        {
-          fontSize: '14px',
-          color: '#ffff00',
-          fontFamily: 'monospace',
-          align: 'center'
-        }
-      );
-      responseText.setScrollFactor(0);
-      responseText.setOrigin(0.5);
-      responseText.setDepth(1001);
-      
-      // Add to terminal elements group for cleanup
-      terminalElements.add(responseText);
-      
-      // Remove after 3 seconds
-      this.time.delayedCall(3000, () => {
-        responseText.destroy();
+    // Add hover effect for Explorer logo - change to brightness instead of scale
+    explorerLogo.on('pointerover', () => {
+      this.tweens.add({
+        targets: explorerLogo,
+        alpha: 1.5, // Increase brightness by using higher alpha
+        duration: 100
       });
     });
     
-    // Handle Playground button click
-    playgroundButton.on('pointerover', () => {
-      playgroundButton.setFillStyle(0x555555);
-    });
-    
-    playgroundButton.on('pointerout', () => {
-      playgroundButton.setFillStyle(0x333333);
-    });
-    
-    playgroundButton.on('pointerdown', () => {
-      // Show a message that this would launch Playground in a full implementation
-      const responseText = this.add.text(
-        width / 2,
-        height / 2 - 130,
-        "Playground would open in a browser window\n(External URL will be added later)",
-        {
-          fontSize: '14px',
-          color: '#ffff00',
-          fontFamily: 'monospace',
-          align: 'center'
-        }
-      );
-      responseText.setScrollFactor(0);
-      responseText.setOrigin(0.5);
-      responseText.setDepth(1001);
-      
-      // Add to terminal elements group for cleanup
-      terminalElements.add(responseText);
-      
-      // Remove after 3 seconds
-      this.time.delayedCall(3000, () => {
-        responseText.destroy();
+    explorerLogo.on('pointerout', () => {
+      this.tweens.add({
+        targets: explorerLogo,
+        alpha: 1.0, // Return to normal brightness
+        duration: 100
       });
     });
     
-    // Handle Continue button click
+    explorerLogo.on('pointerdown', () => {
+      // Open the Explorer website in a new tab
+      window.open('https://testnet.explorer.provable.com/', '_blank');
+    });
+    
+    // Add hover effect for Playground logo - change to brightness instead of scale
+    playgroundLogo.on('pointerover', () => {
+      this.tweens.add({
+        targets: playgroundLogo,
+        alpha: 1.5, // Increase brightness
+        duration: 100
+      });
+    });
+    
+    playgroundLogo.on('pointerout', () => {
+      this.tweens.add({
+        targets: playgroundLogo,
+        alpha: 1.0, // Return to normal brightness
+        duration: 100
+      });
+    });
+    
+    playgroundLogo.on('pointerdown', () => {
+      // Open the Leo Playground website in a new tab
+      window.open('https://play.leo-lang.org/', '_blank');
+    });
+    
+    // Add hover effect for Faucet logo - change to brightness instead of scale
+    faucetLogo.on('pointerover', () => {
+      this.tweens.add({
+        targets: faucetLogo,
+        alpha: 1.5, // Increase brightness
+        duration: 100
+      });
+    });
+    
+    faucetLogo.on('pointerout', () => {
+      this.tweens.add({
+        targets: faucetLogo,
+        alpha: 1.0, // Return to normal brightness
+        duration: 100
+      });
+    });
+    
+    faucetLogo.on('pointerdown', () => {
+      // Show faucet step 1
+      this.showFaucetStep1(terminalElements);
+    });
+    
+    // Handle Continue button hover and click
     continueButton.on('pointerover', () => {
       continueButton.setFillStyle(0x006600);
     });
@@ -1442,7 +1543,251 @@ export default class Level4Scene extends Scene {
       });
     }
   }
+
+  /**
+   * Show the first step of the faucet guide using the provided image
+   */
+  showFaucetStep1(parentGroup: Phaser.GameObjects.Group) {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Create the faucet guide container
+    const guideDialog = this.add.rectangle(
+      width / 2,
+      height / 2,
+      width - 100,
+      height - 150,
+      0x000000,
+      0.95
+    );
+    guideDialog.setScrollFactor(0);
+    guideDialog.setOrigin(0.5);
+    guideDialog.setStrokeStyle(2, 0x00ff00); // Green border
+    guideDialog.setDepth(1100);
+    
+    // Dialog header bar
+    const headerBar = this.add.rectangle(
+      width / 2,
+      height / 2 - (height - 180) / 2 + 15,
+      width - 110,
+      30,
+      0x333333,
+      1
+    );
+    headerBar.setScrollFactor(0);
+    headerBar.setOrigin(0.5);
+    headerBar.setDepth(1100);
+    
+    // Title: Puzzle Discord Faucet: Step 1
+    const guideTitle = this.add.text(
+      width / 2,
+      height / 2 - (height - 180) / 2 + 15,
+      "Puzzle Discord Faucet: Step 1",
+      {
+        fontSize: '20px',
+        color: '#00ff00',
+        fontFamily: 'monospace',
+        fontStyle: 'bold'
+      }
+    );
+    guideTitle.setScrollFactor(0);
+    guideTitle.setOrigin(0.5);
+    guideTitle.setDepth(1100);
+    
+    // Faucet step 1 image
+    const stepImage = this.add.image(
+      width / 2,
+      height / 2.12,
+      'faucet-step1-img'
+    );
+    stepImage.setDisplaySize(width - 150, height - 330);
+    stepImage.setScrollFactor(0);
+    stepImage.setDepth(1100);
+    
+    // Continue button with specific color #5765F2
+    const continueButton = this.add.rectangle(
+      width / 2,
+      height / 2 + (height - 240) / 2 - 25,
+      200,
+      40,
+      0x5765F2 // Blue/purple color as specified
+    );
+    continueButton.setScrollFactor(0);
+    continueButton.setInteractive({ useHandCursor: true });
+    continueButton.setDepth(1100);
+    
+    const continueText = this.add.text(
+      width / 2,
+      height / 2 + (height - 240) / 2 - 25,
+      "Continue",
+      {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontFamily: 'monospace'
+      }
+    );
+    continueText.setScrollFactor(0);
+    continueText.setOrigin(0.5);
+    continueText.setDepth(1100);
+    
+    // Group all guide elements
+    const guideElements = this.add.group([
+      guideDialog, headerBar, guideTitle, stepImage,
+      continueButton, continueText
+    ]);
+    
+    // Add to parent group for proper cleanup
+    guideElements.getChildren().forEach(child => {
+      parentGroup.add(child);
+    });
+    
+    // Add button hover effects
+    continueButton.on('pointerover', () => {
+      continueButton.setFillStyle(0x4A56D3); // Slightly darker shade for hover
+    });
+    
+    continueButton.on('pointerout', () => {
+      continueButton.setFillStyle(0x5765F2); // Back to original color
+    });
+    
+    // Handle continue button click - go to step 2
+    continueButton.on('pointerdown', () => {
+      guideElements.destroy(true);
+      this.showFaucetStep2(parentGroup);
+    });
+    
+    // Add ESC key support for closing
+    const escKeyFaucet = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    if (escKeyFaucet) {
+      escKeyFaucet.once('down', () => {
+        guideElements.destroy(true);
+        this.input.keyboard?.removeKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+      });
+    }
+  }
   
+  /**
+   * Show the second step of the faucet guide using the provided image
+   */
+  showFaucetStep2(parentGroup: Phaser.GameObjects.Group) {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Create the faucet guide container
+    const guideDialog = this.add.rectangle(
+      width / 2,
+      height / 2,
+      width - 100,
+      height - 150,
+      0x000000,
+      0.95
+    );
+    guideDialog.setScrollFactor(0);
+    guideDialog.setOrigin(0.5);
+    guideDialog.setStrokeStyle(2, 0x00ff00); // Green border
+    guideDialog.setDepth(1100);
+    
+    // Dialog header bar
+    const headerBar = this.add.rectangle(
+      width / 2,
+      height / 2 - (height - 180) / 2 + 15,
+      width - 110,
+      30,
+      0x333333,
+      1
+    );
+    headerBar.setScrollFactor(0);
+    headerBar.setOrigin(0.5);
+    headerBar.setDepth(1100);
+    
+    // Title: Puzzle Discord Faucet: Step 2
+    const guideTitle = this.add.text(
+      width / 2,
+      height / 2 - (height - 180) / 2 + 15,
+      "Puzzle Discord Faucet: Step 2",
+      {
+        fontSize: '20px',
+        color: '#00ff00',
+        fontFamily: 'monospace',
+        fontStyle: 'bold'
+      }
+    );
+    guideTitle.setScrollFactor(0);
+    guideTitle.setOrigin(0.5);
+    guideTitle.setDepth(1100);
+    
+    // Faucet step 2 image
+    const stepImage = this.add.image(
+      width / 2,
+      height / 2.12,
+      'faucet-step2-img'
+    );
+    stepImage.setDisplaySize(width - 150, height - 330);
+    stepImage.setScrollFactor(0);
+    stepImage.setDepth(1100);
+    
+    // Continue button with specific color #5765F2
+    const continueButton = this.add.rectangle(
+      width / 2,
+      height / 2 + (height - 240) / 2 - 25,
+      200,
+      40,
+      0x5765F2 // Blue/purple color as specified
+    );
+    continueButton.setScrollFactor(0);
+    continueButton.setInteractive({ useHandCursor: true });
+    continueButton.setDepth(1100);
+    
+    const continueText = this.add.text(
+      width / 2,
+      height / 2 + (height - 240) / 2 - 25,
+      "Continue",
+      {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontFamily: 'monospace'
+      }
+    );
+    continueText.setScrollFactor(0);
+    continueText.setOrigin(0.5);
+    continueText.setDepth(1100);
+    
+    // Group all guide elements
+    const guideElements = this.add.group([
+      guideDialog, headerBar, guideTitle, stepImage,
+      continueButton, continueText
+    ]);
+    
+    // Add to parent group for proper cleanup
+    guideElements.getChildren().forEach(child => {
+      parentGroup.add(child);
+    });
+    
+    // Add button hover effects
+    continueButton.on('pointerover', () => {
+      continueButton.setFillStyle(0x4A56D3); // Slightly darker shade for hover
+    });
+    
+    continueButton.on('pointerout', () => {
+      continueButton.setFillStyle(0x5765F2); // Back to original color
+    });
+    
+    // Handle continue button click - open the faucet site in a new tab
+    continueButton.on('pointerdown', () => {
+      window.open('https://dev.puzzle.online/faucet', '_blank');
+      guideElements.destroy(true);
+    });
+    
+    // Add ESC key support for closing
+    const escKeyFaucet = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    if (escKeyFaucet) {
+      escKeyFaucet.once('down', () => {
+        guideElements.destroy(true);
+        this.input.keyboard?.removeKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+      });
+    }
+  }
+
   /**
    * Open the concrete door after interacting with big-screens
    */

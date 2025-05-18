@@ -800,7 +800,7 @@ export default class Level1Scene extends Scene {
     dialogueBox.setOrigin(0.5);
     dialogueBox.setStrokeStyle(2, 0xFFFFFF);
     
-    const message = "Dr. Cipherpunk: \"Hey kid, the world you lived in is gone. It's been scraped and sold. You want to leave this cell? Then build your new identity and show the proof. Get a wallet and claim your own control. Privacy is the only freedom left.\"";
+    const message = "Dr. Cipherpunk: \"Hey kid, the world you lived in is gone. It's been scraped and sold. You want to leave this cell? Then build your new identity. Get a wallet and claim your own control. Privacy is the only freedom left.\"";
     
     const text = this.add.text(
       width / 2,
