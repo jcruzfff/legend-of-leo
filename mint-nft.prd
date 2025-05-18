@@ -6,7 +6,7 @@ This document outlines the requirements and implementation plan for adding real 
 ## Goals
 - Implement real NFT minting on the Aleo blockchain from within our game
 - Create a "Graduation NFT" that can be minted when players complete Level 4
-- Use existing block explorer button in Level 5 to allow players to view their NFT transaction
+- Display transaction details directly in Level 4 via big-screens after successful minting
 - Enhance player experience with blockchain interaction
 
 ## Technical Requirements
@@ -237,7 +237,7 @@ export async function getNFTTransactionDetails(txId: string): Promise<any> {
 ```
 
 #### 3.2 Update Level 4 Scene
-Modify Level4Scene.ts to integrate NFT minting:
+Modify Level4Scene.ts to integrate NFT minting and display transaction details:
 
 ```typescript
 // Add transaction state tracking to Level4Scene
@@ -297,25 +297,8 @@ talkToGuard() {
       // Show success and close dialog
       dialogueGroup.destroy(true);
       
-      // Show success message
-      const successText = this.add.text(
-        width / 2,
-        height / 2,
-        "NFT Minted successfully!\nTransaction ID: " + txId.substring(0, 10) + "...\n\nGuard: Here's your keycard as a reward!",
-        {
-          fontSize: '18px',
-          color: '#FFFFFF',
-          backgroundColor: '#00000080',
-          padding: { x: 20, y: 10 },
-          align: 'center'
-        }
-      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-      
-      // Give keycard
-      this.time.delayedCall(3000, () => {
-        successText.destroy();
-        this.collectKeycard();
-      });
+      // Show success message with transaction details on big-screen
+      this.showTransactionOnBigScreen(txId);
       
     } catch (error) {
       console.error('NFT Minting error:', error);
@@ -335,133 +318,202 @@ talkToGuard() {
   
   // ... existing code for deny button ...
 }
-```
 
-#### 3.3 Update Level 5 Scene
-Modify Level5Scene.ts to link the existing block explorer button to the NFT transaction:
-
-```typescript
-// Add to big-screens interaction in Level 5
-showScreensMessage() {
-  // ... existing terminal setup code ...
+// New method to show transaction details on big-screen
+private showTransactionOnBigScreen(txId: string) {
+  // Find the big-screen in the level
+  const bigScreen = this.getObjectsByType('big-screen')[0];
+  if (!bigScreen) {
+    // Fallback if no big-screen is available
+    this.showTransactionPopup(txId);
+    return;
+  }
   
-  // Add a new "View NFT Transaction" button in the terminal
-  const viewNFTButton = this.add.rectangle(
-    width / 2,
-    height / 2 - 80,
-    200,
-    40,
-    0x333333
-  );
-  viewNFTButton.setScrollFactor(0);
-  viewNFTButton.setInteractive({ useHandCursor: true });
-  viewNFTButton.setDepth(1000);
+  // Create a container for the transaction display
+  const screenWidth = 400;
+  const screenHeight = 300;
+  const screenX = bigScreen.x;
+  const screenY = bigScreen.y;
   
-  const viewNFTText = this.add.text(
-    width / 2,
-    height / 2 - 80,
-    "View NFT Transaction",
-    {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontFamily: 'monospace'
-    }
-  );
-  viewNFTText.setScrollFactor(0);
-  viewNFTText.setOrigin(0.5);
-  viewNFTText.setDepth(1001);
+  // Create screen container
+  const screenContainer = this.add.container(screenX, screenY);
+  screenContainer.setDepth(100);
   
-  // Add button to terminal elements
-  terminalElements.add(viewNFTButton);
-  terminalElements.add(viewNFTText);
+  // Add screen background
+  const bg = this.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.8);
+  screenContainer.add(bg);
   
-  // Handle View NFT Transaction button click
-  viewNFTButton.on('pointerover', () => {
-    viewNFTButton.setFillStyle(0x555555);
-  });
+  // Add transaction details
+  const headerText = this.add.text(0, -120, "NFT MINTED SUCCESSFULLY!", {
+    fontSize: '20px',
+    color: '#00FF00',
+    fontFamily: 'monospace',
+    align: 'center'
+  }).setOrigin(0.5);
+  screenContainer.add(headerText);
   
-  viewNFTButton.on('pointerout', () => {
-    viewNFTButton.setFillStyle(0x333333);
-  });
+  // Add NFT image placeholder
+  const nftImage = this.add.sprite(0, -50, 'graduation-nft');
+  screenContainer.add(nftImage);
   
-  viewNFTButton.on('pointerdown', () => {
-    // Check if NFT was minted
-    const txId = this.registry.get('nftTransactionId');
-    
-    if (!txId) {
-      // Show message that no NFT has been minted
-      const noNFTText = this.add.text(
-        width / 2,
-        height / 2 - 130,
-        "No NFT transaction found.\nYou need to mint an NFT in Level 4 first.",
-        {
-          fontSize: '14px',
-          color: '#ffff00',
-          fontFamily: 'monospace',
-          align: 'center'
-        }
-      );
-      noNFTText.setScrollFactor(0);
-      noNFTText.setOrigin(0.5);
-      noNFTText.setDepth(1001);
-      
-      // Add to terminal elements and remove after 3 seconds
-      terminalElements.add(noNFTText);
-      this.time.delayedCall(3000, () => {
-        noNFTText.destroy();
-      });
-      return;
-    }
-    
+  // Add transaction ID
+  const txText = this.add.text(0, 50, "Transaction ID:", {
+    fontSize: '16px',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+    align: 'center'
+  }).setOrigin(0.5);
+  screenContainer.add(txText);
+  
+  const idText = this.add.text(0, 80, txId, {
+    fontSize: '12px',
+    color: '#AAAAFF',
+    fontFamily: 'monospace',
+    align: 'center'
+  }).setOrigin(0.5);
+  screenContainer.add(idText);
+  
+  // Add "View in Explorer" button
+  const viewButton = this.add.rectangle(0, 120, 200, 40, 0x3333AA);
+  viewButton.setInteractive({ useHandCursor: true });
+  screenContainer.add(viewButton);
+  
+  const viewText = this.add.text(0, 120, "View in Explorer", {
+    fontSize: '16px',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+    align: 'center'
+  }).setOrigin(0.5);
+  screenContainer.add(viewText);
+  
+  // Handle button click - open explorer
+  viewButton.on('pointerover', () => viewButton.setFillStyle(0x4444BB));
+  viewButton.on('pointerout', () => viewButton.setFillStyle(0x3333AA));
+  viewButton.on('pointerdown', () => {
     // Generate explorer URL
     const explorerUrl = `https://explorer.aleo.org/transaction/${txId}`;
     
-    // Show confirmation message with transaction link
-    const confirmationText = this.add.text(
-      width / 2,
-      height / 2 - 130,
-      "Opening transaction in Aleo Explorer...",
-      {
-        fontSize: '14px',
-        color: '#00ff00',
-        fontFamily: 'monospace',
-        align: 'center'
-      }
-    );
-    confirmationText.setScrollFactor(0);
-    confirmationText.setOrigin(0.5);
-    confirmationText.setDepth(1001);
-    terminalElements.add(confirmationText);
-    
-    // Simulate opening the link
-    // In a real deployment, this would trigger window.open(explorerUrl, '_blank')
-    // or use the wallet's internal browser functionality
-    
-    // For now, just show the URL for reference
-    const urlText = this.add.text(
-      width / 2,
-      height / 2 - 100,
-      explorerUrl,
-      {
-        fontSize: '10px',
-        color: '#aaaaaa',
-        fontFamily: 'monospace',
-        align: 'center'
-      }
-    );
-    urlText.setScrollFactor(0);
-    urlText.setOrigin(0.5);
-    urlText.setDepth(1001);
-    terminalElements.add(urlText);
-    
-    // Remove messages after a few seconds
-    this.time.delayedCall(5000, () => {
-      confirmationText.destroy();
-      urlText.destroy();
-    });
+    // Open in new window/tab
+    window.open(explorerUrl, '_blank');
   });
   
-  // ... existing code for other buttons ...
+  // Add continue button
+  const continueButton = this.add.rectangle(0, 170, 200, 40, 0x33AA33);
+  continueButton.setInteractive({ useHandCursor: true });
+  screenContainer.add(continueButton);
+  
+  const continueText = this.add.text(0, 170, "Continue Game", {
+    fontSize: '16px',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+    align: 'center'
+  }).setOrigin(0.5);
+  screenContainer.add(continueText);
+  
+  // Handle button click - continue game
+  continueButton.on('pointerover', () => continueButton.setFillStyle(0x44BB44));
+  continueButton.on('pointerout', () => continueButton.setFillStyle(0x33AA33));
+  continueButton.on('pointerdown', () => {
+    screenContainer.destroy();
+    this.collectKeycard();
+  });
+}
+
+// Fallback for showing transaction in a popup if no big-screen is available
+private showTransactionPopup(txId: string) {
+  const width = this.cameras.main.width;
+  const height = this.cameras.main.height;
+  
+  // Create popup container
+  const popupContainer = this.add.container(width / 2, height / 2);
+  popupContainer.setDepth(1000);
+  
+  // Add popup background
+  const bg = this.add.rectangle(0, 0, 500, 300, 0x000000, 0.9);
+  popupContainer.add(bg);
+  
+  // Add success message
+  const successText = this.add.text(
+    0, -120,
+    "NFT Minted Successfully!",
+    {
+      fontSize: '22px',
+      color: '#00FF00',
+      fontFamily: 'monospace',
+      align: 'center'
+    }
+  ).setOrigin(0.5);
+  popupContainer.add(successText);
+  
+  // Add transaction ID
+  const txText = this.add.text(
+    0, -70,
+    "Transaction ID:",
+    {
+      fontSize: '16px',
+      color: '#FFFFFF',
+      fontFamily: 'monospace',
+      align: 'center'
+    }
+  ).setOrigin(0.5);
+  popupContainer.add(txText);
+  
+  const idText = this.add.text(
+    0, -40,
+    txId,
+    {
+      fontSize: '12px',
+      color: '#AAAAFF',
+      fontFamily: 'monospace',
+      align: 'center'
+    }
+  ).setOrigin(0.5);
+  popupContainer.add(idText);
+  
+  // Add view button
+  const viewButton = this.add.rectangle(0, 20, 200, 40, 0x3333AA);
+  viewButton.setInteractive({ useHandCursor: true });
+  popupContainer.add(viewButton);
+  
+  const viewText = this.add.text(0, 20, "View in Explorer", {
+    fontSize: '16px',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+    align: 'center'
+  }).setOrigin(0.5);
+  popupContainer.add(viewText);
+  
+  // Handle button click - open explorer
+  viewButton.on('pointerover', () => viewButton.setFillStyle(0x4444BB));
+  viewButton.on('pointerout', () => viewButton.setFillStyle(0x3333AA));
+  viewButton.on('pointerdown', () => {
+    // Generate explorer URL
+    const explorerUrl = `https://explorer.aleo.org/transaction/${txId}`;
+    
+    // Open in new window/tab
+    window.open(explorerUrl, '_blank');
+  });
+  
+  // Add continue button
+  const continueButton = this.add.rectangle(0, 80, 200, 40, 0x33AA33);
+  continueButton.setInteractive({ useHandCursor: true });
+  popupContainer.add(continueButton);
+  
+  const continueText = this.add.text(0, 80, "Continue Game", {
+    fontSize: '16px',
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+    align: 'center'
+  }).setOrigin(0.5);
+  popupContainer.add(continueText);
+  
+  // Handle button click - continue game
+  continueButton.on('pointerover', () => continueButton.setFillStyle(0x44BB44));
+  continueButton.on('pointerout', () => continueButton.setFillStyle(0x33AA33));
+  continueButton.on('pointerdown', () => {
+    popupContainer.destroy();
+    this.collectKeycard();
+  });
 }
 ```
 
@@ -478,7 +530,7 @@ showScreensMessage() {
 1. Test wallet connection in Level 2
 2. Test progression to Level 4
 3. Test NFT minting interaction with guard
-4. Test transaction viewing in Level 5 screens
+4. Test transaction viewing in Level 4 big-screens
 5. Test explorer integration
 
 #### 4.3 Release Steps

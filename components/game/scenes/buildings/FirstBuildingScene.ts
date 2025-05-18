@@ -11,6 +11,8 @@ export default class FirstBuildingScene extends Scene {
   private interactionIndicators: Map<Phaser.GameObjects.GameObject, Phaser.GameObjects.Sprite> = new Map();
   private interactiveObjects: Phaser.GameObjects.GameObject[] = [];
   private exitPrompt?: Phaser.GameObjects.Text;
+  private playerInExitZone: boolean = false;
+  private exitTimer: Phaser.Time.TimerEvent | null = null;
   
   constructor() {
     super({ key: 'FirstBuildingScene' });
@@ -54,6 +56,16 @@ export default class FirstBuildingScene extends Scene {
     
     if (!textureCheck('wall')) {
       this.load.image('wall', '/assets/maps/wall.png');
+    }
+    
+    // Load custom floor texture for this building
+    if (!textureCheck('veru-floor')) {
+      this.load.image('veru-floor', '/assets/maps/veru-floor.png');
+    }
+    
+    // Load cashier sprite from maps folder
+    if (!textureCheck('cashier-one')) {
+      this.load.image('cashier-one', '/assets/maps/cashier-one.png');
     }
     
     // Load interaction indicator texture if it doesn't exist
@@ -102,14 +114,9 @@ export default class FirstBuildingScene extends Scene {
     // Set up input
     this.cursors = this.input.keyboard?.createCursorKeys();
     
-    // Add space key for immediate exit
+    // Add spacebar for interactions with NPCs and objects
     this.input.keyboard?.on('keydown-SPACE', () => {
-      this.exitBuilding();
-    });
-    
-    // Add ESC key as an exit method
-    this.input.keyboard?.on('keydown-ESC', () => {
-      this.exitBuilding();
+      this.interactWithNearbyObject();
     });
     
     // Explicitly set world bounds
@@ -130,12 +137,29 @@ export default class FirstBuildingScene extends Scene {
     const roomHeight = 15;
     const tileSize = 48;
     
-    // Create walls
+    // Create walls - without visible bounding boxes
     const graphics = this.add.graphics();
     
-    // Floor
-    graphics.fillStyle(0x222222);
-    graphics.fillRect(tileSize, tileSize, (roomWidth - 2) * tileSize, (roomHeight - 2) * tileSize);
+    // Floor - replace solid color with tiled floor texture
+    const floorTile = this.textures.get('veru-floor');
+    if (floorTile) {
+      // Calculate how many tiles we need in each direction
+      
+      // Create a repeating tile pattern for the floor
+      for (let x = 1; x < roomWidth - 1; x++) {
+        for (let y = 1; y < roomHeight - 1; y++) {
+          this.add.image(
+            x * tileSize + tileSize / 2, 
+            y * tileSize + tileSize / 2, 
+            'veru-floor'
+          ).setDepth(1);
+        }
+      }
+    } else {
+      // Fallback to solid color if texture is missing
+      graphics.fillStyle(0x222222);
+      graphics.fillRect(tileSize, tileSize, (roomWidth - 2) * tileSize, (roomHeight - 2) * tileSize);
+    }
     
     // Walls
     graphics.fillStyle(0x555555);
@@ -183,15 +207,59 @@ export default class FirstBuildingScene extends Scene {
   createFurniture() {
     const tileSize = 48;
     
-    // Add a desk
-    const deskX = 400;
-    const deskY = 200;
+    // Calculate room center
+    const centerX = 7.5 * tileSize; // center of a 15-width room
+    const centerY = 7 * tileSize;  // slightly above center of a 15-height room
+    
+    // Add a desk at the center
+    const deskX = centerX;
+    const deskY = centerY;
     const desk = this.add.rectangle(deskX, deskY, tileSize * 3, tileSize, 0x8B4513);
     
     // Add a chair
     const chairX = deskX;
     const chairY = deskY + tileSize;
     const chair = this.add.rectangle(chairX, chairY, tileSize, tileSize, 0x8B0000);
+    // Add chair to interactive objects for collision
+    const furniture = this.physics.add.staticGroup();
+    furniture.add(chair);
+    
+    // Add cashier in the center behind the desk
+    const cashierX = centerX;
+    const cashierY = centerY - tileSize;
+    
+    let cashier;
+    
+    // Check if cashier sprite exists, otherwise create a fallback rectangle
+    if (this.textures.exists('cashier-one')) {
+      cashier = this.add.image(cashierX, cashierY, 'cashier-one');
+      cashier.setScale(0.7); // Adjust scale to fit the scene
+    } else {
+      // Fallback to a colored rectangle if sprite is missing
+      cashier = this.add.rectangle(cashierX, cashierY, tileSize, tileSize * 1.5, 0x6A5ACD);
+      
+      // Add a face-like element to make it look more like a person
+      const head = this.add.circle(cashierX, cashierY - 10, 8, 0xFFE4C4);
+      const body = this.add.rectangle(cashierX, cashierY + 10, 14, 25, 0x4682B4);
+      
+      // Group these elements
+      this.add.group([cashier, head, body]);
+    }
+    
+    cashier.setDepth(10); // Ensure it appears above the floor
+    
+    // Make cashier interactive
+    cashier.setInteractive({ useHandCursor: true });
+    cashier.setData('interactive', true);
+    cashier.setData('onInteract', () => {
+      this.showMessage("Hello! Welcome to our shop. How can I help you today?");
+    });
+    
+    // Add cashier to interactive objects
+    this.interactiveObjects.push(cashier);
+    
+    // Create indicator for the cashier
+    this.createInteractionIndicator(cashier);
     
     // Make desk interactive
     desk.setInteractive({ useHandCursor: true });
@@ -207,9 +275,8 @@ export default class FirstBuildingScene extends Scene {
     this.createInteractionIndicator(desk);
     
     // Add collision with furniture - create invisible physics objects
-    const furniture = this.physics.add.staticGroup();
     furniture.add(this.add.zone(deskX, deskY, tileSize * 3, tileSize));
-    furniture.add(this.add.zone(chairX, chairY, tileSize, tileSize));
+    furniture.add(this.add.zone(cashierX, cashierY, tileSize, tileSize)); // Add collision for cashier
     
     // Enable collision with player
     if (this.player) {
@@ -218,53 +285,189 @@ export default class FirstBuildingScene extends Scene {
   }
   
   /**
+   * Interact with the nearest interactive object
+   */
+  interactWithNearbyObject() {
+    if (!this.player) return;
+    
+    const playerPos = this.player.sprite.getCenter();
+    const interactDistance = 60; // Interaction range
+    let nearestObject: Phaser.GameObjects.GameObject | null = null;
+    let shortestDistance = interactDistance;
+    
+    // Find the nearest interactive object
+    this.interactiveObjects.forEach(obj => {
+      if (obj === this.exitPoint) return; // Skip exit point since it's handled differently now
+      
+      // Get object position
+      let objX = 0;
+      let objY = 0;
+      
+      if ('getCenter' in obj) {
+        const center = (obj as unknown as Phaser.GameObjects.Rectangle).getCenter();
+        objX = center.x;
+        objY = center.y;
+      } else if ('x' in obj && 'y' in obj) {
+        objX = (obj as unknown as { x: number }).x;
+        objY = (obj as unknown as { y: number }).y;
+      }
+      
+      // Calculate distance
+      const distance = Phaser.Math.Distance.Between(playerPos.x, playerPos.y, objX, objY);
+      
+      // If this is the nearest object so far, update
+      if (distance < shortestDistance) {
+        shortestDistance = distance;
+        nearestObject = obj;
+      }
+    });
+    
+    // Interact with the nearest object
+    if (nearestObject) {
+      // Type assertion to fix linter error
+      const gameObject = nearestObject as Phaser.GameObjects.GameObject & { 
+        getData: (key: string) => (() => void) | undefined 
+      };
+      const onInteract = gameObject.getData('onInteract');
+      if (typeof onInteract === 'function') {
+        onInteract();
+      }
+    }
+  }
+  
+  /**
    * Create an exit point to return to Level5Scene
    */
   createExitPoint(x: number, y: number) {
-    // Create an exit zone - much larger and positioned slightly up from the door
-    this.exitPoint = this.add.zone(x, y - 20, 200, 150);
-    this.exitPoint.setData('interactive', true);
-    this.exitPoint.setData('onInteract', () => {
-      this.exitBuilding();
+    // Create a visible doormat in the exit area (make it smaller and more distinctive)
+    const doormat = this.add.rectangle(x, y, 80, 60, 0x330000, 0.9);
+    doormat.setStrokeStyle(3, 0xffaa00);
+    doormat.setDepth(1);
+    
+    // Add more noticeable decorative elements
+    const text = this.add.text(x, y - 15, "EXIT", {
+      fontSize: '18px',
+      color: '#ffdd00',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4
     });
+    text.setOrigin(0.5);
+    text.setDepth(2);
     
-    // Make it interactive
-    this.exitPoint.setInteractive({ useHandCursor: true });
+    // Multiple arrows to make it more obvious
+    const arrow1 = this.add.text(x - 20, y + 10, "↓", {
+      fontSize: '24px',
+      color: '#ffdd00',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    arrow1.setOrigin(0.5);
+    arrow1.setDepth(2);
     
-    // Add to interactive objects array
-    this.interactiveObjects.push(this.exitPoint);
+    const arrow2 = this.add.text(x, y + 10, "↓", {
+      fontSize: '24px',
+      color: '#ffdd00',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    arrow2.setOrigin(0.5);
+    arrow2.setDepth(2);
+    
+    const arrow3 = this.add.text(x + 20, y + 10, "↓", {
+      fontSize: '24px',
+      color: '#ffdd00',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    arrow3.setOrigin(0.5);
+    arrow3.setDepth(2);
+    
+    // Create a smaller exit zone
+    this.exitPoint = this.add.zone(x, y, 80, 60);
+    this.exitPoint.setData('interactive', true);
+    
+    // Make the zone a physics object that can be overlapped
+    this.physics.world.enable(this.exitPoint);
+    
+    // Adjust the exit zone's body size and position (smaller collision area)
+    const exitBody = this.exitPoint.body as Phaser.Physics.Arcade.Body;
+    exitBody.setSize(80, 60);
+    exitBody.setOffset(-40, -30);
+    
+    // Add overlap detection with the player
+    if (this.player) {
+      this.physics.add.overlap(this.player.sprite, this.exitPoint, () => {
+        if (!this.playerInExitZone) {
+          this.playerInExitZone = true;
+          
+          // Show a prompt that player has entered exit zone
+          this.showExitPrompt();
+          
+          // Set a timer to exit after staying in the zone
+          this.exitTimer = this.time.delayedCall(800, () => {
+            if (this.playerInExitZone) {
+              this.exitBuilding();
+            }
+          });
+        }
+      });
+      
+      // We'll check if player leaves the zone in the update method instead
+      // since the 'overlapend' event can be unreliable
+    }
     
     // Create an indicator for the exit - make it more visible
-    this.exitIndicator = this.add.sprite(x, y - 60, 'interaction-indicator');
+    this.exitIndicator = this.add.sprite(x, y - 50, 'interaction-indicator');
     this.exitIndicator.setAlpha(0.9);
     this.exitIndicator.setScale(0.8);
     this.exitIndicator.setDepth(100);
+    this.exitIndicator.setTint(0xffdd00);
     
     // Add animations for the indicator
     this.tweens.add({
       targets: this.exitIndicator,
-      y: y - 70,
-      duration: 1500,
+      y: y - 60,
+      duration: 1200,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
     });
+  }
+  
+  /**
+   * Show a prompt when player enters the exit zone
+   */
+  showExitPrompt() {
+    // Remove existing prompt if it exists
+    this.hideExitPrompt();
     
-    // Add a visual cue for the door - make it more noticeable
-    const doorGraphics = this.add.graphics();
-    doorGraphics.fillStyle(0x000000, 0.7);
-    doorGraphics.fillRect(x - 50, y - 25, 100, 40);
-    doorGraphics.setDepth(1);
-    
-    // Add text label for the exit
-    const exitText = this.add.text(x, y - 40, "Exit to Town", {
-      fontSize: '16px',
-      color: '#FFFFFF',
-      backgroundColor: '#00000080',
-      padding: { x: 8, y: 4 }
-    });
-    exitText.setOrigin(0.5);
-    exitText.setDepth(100);
+    // Create a new prompt
+    this.exitPrompt = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height - 50,
+      "Exiting building...",
+      {
+        fontSize: '20px',
+        color: '#ffdd00',
+        stroke: '#000000',
+        strokeThickness: 4,
+        fontStyle: 'bold'
+      }
+    );
+    this.exitPrompt.setOrigin(0.5);
+    this.exitPrompt.setScrollFactor(0);
+    this.exitPrompt.setDepth(1000);
+  }
+  
+  /**
+   * Hide the exit prompt
+   */
+  hideExitPrompt() {
+    if (this.exitPrompt) {
+      this.exitPrompt.destroy();
+      this.exitPrompt = undefined;
+    }
   }
   
   /**
@@ -293,12 +496,13 @@ export default class FirstBuildingScene extends Scene {
     const x = this.cameras.main.width / 2;
     const y = this.cameras.main.height / 2;
     
-    // Create a background
+    // Create a background with much higher depth
     const bg = this.add.rectangle(x, y, 500, 120, 0x000000, 0.8);
     bg.setStrokeStyle(2, 0xffffff);
     bg.setScrollFactor(0); // Fix to camera
+    bg.setDepth(2000); // Extremely high depth to ensure it's above everything
     
-    // Add text
+    // Add text with matching high depth
     const text = this.add.text(x, y, message, {
       fontSize: '18px',
       color: '#ffffff',
@@ -307,6 +511,7 @@ export default class FirstBuildingScene extends Scene {
     });
     text.setOrigin(0.5);
     text.setScrollFactor(0); // Fix to camera
+    text.setDepth(2001); // Even higher than background to ensure it's visible
     
     // Group for easier cleanup
     const group = this.add.group([bg, text]);
@@ -390,65 +595,12 @@ export default class FirstBuildingScene extends Scene {
     panel.setStrokeStyle(1, 0xFFFFFF, 0.3);
     buttonContainer.add(panel);
     
-    // Exit button text
-    const buttonText = this.add.text(screenWidth / 2, 12, 'EXIT (SPACE)', {
+    // Exit button text - updated to reflect new exit mechanism
+    const buttonText = this.add.text(screenWidth / 2, 12, 'WALK TO EXIT', {
       fontSize: '14px',
       color: '#FFFFFF'
     }).setOrigin(0.5);
     buttonContainer.add(buttonText);
-  }
-  
-  /**
-   * Check for nearby interactive objects
-   */
-  checkInteractiveObjects() {
-    if (!this.player || this.interactiveObjects.length === 0) return;
-    
-    const playerPos = this.player.sprite.getCenter();
-    const interactDistance = 60; // Interaction range
-    
-    // First, hide all indicators
-    this.interactionIndicators.forEach(indicator => {
-      indicator.setVisible(false);
-    });
-    
-    // Check each interactive object
-    this.interactiveObjects.forEach(obj => {
-      if (obj === this.exitPoint) return; // Skip exit point, it has its own indicator
-      
-      // Get object position
-      let objX = 0;
-      let objY = 0;
-      
-      if ('getCenter' in obj) {
-        const center = (obj as unknown as Phaser.GameObjects.Rectangle).getCenter();
-        objX = center.x;
-        objY = center.y;
-      } else if ('x' in obj && 'y' in obj) {
-        objX = (obj as unknown as { x: number }).x;
-        objY = (obj as unknown as { y: number }).y;
-      }
-      
-      // Calculate distance
-      const distance = Phaser.Math.Distance.Between(playerPos.x, playerPos.y, objX, objY);
-      
-      // If in range, display indicator
-      if (distance < interactDistance) {
-        // Show the indicator
-        const indicator = this.interactionIndicators.get(obj);
-        if (indicator) {
-          indicator.setVisible(true);
-        }
-        
-        // Add E key interaction instead
-        if (this.input.keyboard?.checkDown(this.input.keyboard.addKey('E'), 500)) {
-          const onInteract = obj.getData('onInteract');
-          if (typeof onInteract === 'function') {
-            onInteract();
-          }
-        }
-      }
-    });
   }
   
   /**
@@ -502,6 +654,51 @@ export default class FirstBuildingScene extends Scene {
     });
   }
   
+  /**
+   * Check for nearby interactive objects
+   */
+  checkInteractiveObjects() {
+    if (!this.player || this.interactiveObjects.length === 0) return;
+    
+    const playerPos = this.player.sprite.getCenter();
+    const interactDistance = 60; // Interaction range
+    
+    // First, hide all indicators
+    this.interactionIndicators.forEach(indicator => {
+      indicator.setVisible(false);
+    });
+    
+    // Check each interactive object
+    this.interactiveObjects.forEach(obj => {
+      if (obj === this.exitPoint) return; // Skip exit point, it has its own indicator
+      
+      // Get object position
+      let objX = 0;
+      let objY = 0;
+      
+      if ('getCenter' in obj) {
+        const center = (obj as unknown as Phaser.GameObjects.Rectangle).getCenter();
+        objX = center.x;
+        objY = center.y;
+      } else if ('x' in obj && 'y' in obj) {
+        objX = (obj as unknown as { x: number }).x;
+        objY = (obj as unknown as { y: number }).y;
+      }
+      
+      // Calculate distance
+      const distance = Phaser.Math.Distance.Between(playerPos.x, playerPos.y, objX, objY);
+      
+      // If in range, display indicator
+      if (distance < interactDistance) {
+        // Show the indicator
+        const indicator = this.interactionIndicators.get(obj);
+        if (indicator) {
+          indicator.setVisible(true);
+        }
+      }
+    });
+  }
+  
   update() {
     // Update player movement if player exists
     if (this.player && this.cursors) {
@@ -510,5 +707,19 @@ export default class FirstBuildingScene extends Scene {
     
     // Check for interactive objects
     this.checkInteractiveObjects();
+    
+    // Check if player is still in exit zone
+    if (this.playerInExitZone && this.player && this.exitPoint) {
+      const isOverlapping = this.physics.overlap(this.player.sprite, this.exitPoint);
+      
+      if (!isOverlapping) {
+        this.playerInExitZone = false;
+        if (this.exitTimer) {
+          this.exitTimer.remove();
+          this.exitTimer = null;
+        }
+        this.hideExitPrompt();
+      }
+    }
   }
 } 

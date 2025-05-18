@@ -7,6 +7,9 @@ import { useMemo, useEffect, useState } from "react";
 import { PuzzleWalletAdapter } from 'aleo-adapters';
 import "@demox-labs/aleo-wallet-adapter-reactui/dist/styles.css";
 
+// Flag to disable automatic wallet connection
+const AUTO_CONNECT_DISABLED = true;
+
 export default function WalletProvider({ children }: { children: React.ReactNode }) {
   // Define wallets using useMemo BEFORE any conditional returns
   // This ensures consistent hook call order
@@ -37,24 +40,21 @@ export default function WalletProvider({ children }: { children: React.ReactNode
   const [checkingStoredConnection, setCheckingStoredConnection] = useState(true);
   const [autoConnect, setAutoConnect] = useState(false);
 
-  // Check for stored connection on mount
+  // Effect to check for stored wallet connection
   useEffect(() => {
+    console.log('[WalletProvider] Checking for stored wallet connection');
+    
+    // Skip auto-connect if disabled
+    if (AUTO_CONNECT_DISABLED) {
+      console.log('[WalletProvider] Auto-connect disabled, skipping stored connection check');
+      setCheckingStoredConnection(false);
+      return;
+    }
+
     try {
-      console.log('[WalletProvider] Checking for stored wallet connection');
-      
-      // Check if Puzzle wallet is available
-      const isPuzzleAvailable = typeof window !== 'undefined' && 
-                               'puzzle' in window && 
-                               window.puzzle !== undefined && 
-                               window.puzzle !== null;
-      
-      if (!isPuzzleAvailable) {
-        console.log('[WalletProvider] Puzzle wallet not detected, skipping auto-connect');
-        setCheckingStoredConnection(false);
-        return;
-      }
-      
+      // Check for a stored connection
       const storedConnection = localStorage.getItem('walletConnection');
+      
       if (storedConnection) {
         try {
           const connectionData = JSON.parse(storedConnection);
@@ -86,6 +86,7 @@ export default function WalletProvider({ children }: { children: React.ReactNode
       console.error('[WalletProvider] Error checking stored wallet connection:', error);
       localStorage.removeItem('walletConnection');
     }
+
     setCheckingStoredConnection(false);
   }, []);
 

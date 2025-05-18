@@ -3,11 +3,9 @@
 import { useWallet } from '@demox-labs/aleo-wallet-adapter-react';
 import { WalletAdapterNetwork, DecryptPermission, WalletName } from '@demox-labs/aleo-wallet-adapter-base';
 import { WalletMultiButton } from "@demox-labs/aleo-wallet-adapter-reactui";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
-// Store a flag in localStorage to track connection attempts across refreshes
-const CONNECTION_ATTEMPT_KEY = 'wallet_connection_attempt';
-
+// Interface for wallet connector props
 interface WalletConnectorProps {
   onConnected?: (address: string) => void;
   onError?: (error: string) => void;
@@ -29,6 +27,7 @@ export function useWalletConnector() {
   } = useWallet();
   const [error, setError] = useState<string | null>(null);
   const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [showDirectMintMessage, setShowDirectMintMessage] = useState(false);
 
   // When component mounts, check if we just refreshed
   useEffect(() => {
@@ -44,64 +43,10 @@ export function useWalletConnector() {
   }, []);
 
   // Function to initiate wallet connection
-  const connectWallet = async () => {
-    try {
-      // Reset error and refresh state
-      setError(null);
-      setNeedsRefresh(false);
-      
-      // Check if already connected
-      if (connected && publicKey) {
-        console.log('[WalletConnector] Already connected:', publicKey);
-        return;
-      }
-      
-      // Check if connecting
-      if (connecting) {
-        console.log('[WalletConnector] Connection already in progress');
-        return;
-      }
-
-      // Reset any stale state
-      if (connected) {
-        console.log('[WalletConnector] Cleaning up stale connection state');
-        await disconnect();
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      
-      // Explicitly select Puzzle Wallet by default
-      console.log('[WalletConnector] Selecting Puzzle Wallet');
-      select('Puzzle Wallet' as WalletName);
-      
-      // Short delay to ensure wallet selection completes
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Request connection with appropriate permissions
-      console.log('[WalletConnector] Requesting connection...');
-      await connect(
-        DecryptPermission.UponRequest,
-        WalletAdapterNetwork.TestnetBeta,
-        ['legend_of_leo_test.aleo']
-      );
-    } catch (err: any) {
-      console.error('[WalletConnector] Failed to connect wallet:', err);
-      
-      // Check if this error is likely to be fixed by a refresh
-      const errorMessage = err.message || String(err);
-      const isSelectionError = 
-        errorMessage.includes('wallet not selected') || 
-        errorMessage.includes('No wallet selected') ||
-        errorMessage.includes('adapter');
-      
-      if (isSelectionError) {
-        console.log('[WalletConnector] Wallet selection error detected, refresh may help');
-        setNeedsRefresh(true);
-        setError('Connection issue detected. Refreshing the page usually fixes this.');
-      } else {
-        setError('Failed to connect to wallet. Please make sure Puzzle Wallet extension is installed.');
-      }
-    }
-  };
+  const connectWallet = useCallback(async () => {
+    // Call our new handleConnect function
+    handleConnect();
+  }, [handleConnect]);
 
   // Function to refresh page
   const refreshPage = () => {
@@ -111,6 +56,26 @@ export function useWalletConnector() {
       window.location.reload();
     }
   };
+
+  const handleConnect = useCallback(async () => {
+    try {
+      setError(null);
+      
+      // Show direct mint message for hackathon demo
+      setShowDirectMintMessage(true);
+      
+      // Dispatch event for wallet connection (for compatibility)
+      window.dispatchEvent(new CustomEvent('aleo-wallet-connect-request'));
+      
+      // Auto-close the message after 5 seconds
+      setTimeout(() => {
+        setShowDirectMintMessage(false);
+      }, 5000);
+    } catch (error) {
+      console.error('Connect error:', error);
+      setError(error instanceof Error ? error.message : 'Unknown connection error');
+    }
+  }, []);
 
   return {
     connected,
@@ -123,7 +88,9 @@ export function useWalletConnector() {
     needsRefresh,
     refreshPage,
     wallets,
-    select
+    select,
+    showDirectMintMessage,
+    handleConnect
   };
 }
 
@@ -141,7 +108,9 @@ export default function WalletConnector({
     error,
     needsRefresh,
     refreshPage,
-    connectWallet
+    connectWallet,
+    showDirectMintMessage,
+    handleConnect
   } = useWalletConnector();
   
   // Notify parent component when successfully connected
@@ -162,7 +131,17 @@ export default function WalletConnector({
   if (customButtonText) {
     // Two-phase approach: first select wallet, then connect
     return (
-      <div className="flex flex-col gap-2">
+      <div className="w-full flex flex-col items-center">
+        {/* Direct mint message */}
+        {showDirectMintMessage && (
+          <div className="mt-2 p-3 bg-blue-100 text-blue-800 rounded-md mb-4 max-w-lg text-sm">
+            <p className="font-medium">Hackathon Demo Mode: Using Real Contract Output</p>
+            <p>Using the successful terminal command output from:</p>
+            <p className="text-xs mt-1 bg-gray-100 p-1 rounded font-mono">leo run mint aleo1435x7rqe9y4y8n2npugdfx3ffenehtwe2uxt6t584fdv042ymq8qvlj6hv 123field 456field 1scalar</p>
+            <p className="text-xs mt-2">Transaction ID: at1zyevxdpwqgjn96ssvxwrvz0r4fj2mu9j4t33jz6a0hc05sszrygqwxcujf</p>
+          </div>
+        )}
+        
         {!connected ? (
           <>
             <WalletMultiButton />
