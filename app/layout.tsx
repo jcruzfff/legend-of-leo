@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { GameProvider } from "@/lib/contexts/GameContext";
+import WalletConnectorWrapper from "@/components/wallet/WalletConnectorWrapper";
 import "./globals.css";
-import WalletProvider from "@/components/wallet/WalletProvider";
-import WalletListener from "@/components/wallet/WalletListener";
-import ConnectedWalletDisplay from "@/components/wallet/ConnectedWalletDisplay";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,11 +30,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <WalletProvider>
-          <WalletListener />
-          <ConnectedWalletDisplay />
-          <GameProvider>{children}</GameProvider>
-        </WalletProvider>
+        <WalletConnectorWrapper />
+        <GameProvider>{children}</GameProvider>
       </body>
     </html>
   );

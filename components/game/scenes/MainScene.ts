@@ -285,7 +285,7 @@ class Player {
       if (this.sprite.texture.key === 'player') {
         // For the new player sprite sheet
         const idleAnim = `player-idle-${this.currentDirection}`;
-        console.log(`Playing idle animation: ${idleAnim}`);
+      
         this.sprite.play(idleAnim, true);
       } else if (this.animations['idle']) {
         // For aseprite animations

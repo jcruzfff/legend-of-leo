@@ -3,14 +3,7 @@
 import { Scene } from 'phaser';
 import { loadTilemap, addCollision, MapLayers } from '@/lib/utils/mapLoader';
 import Player from '@/lib/classes/Player';
-import { 
-  connectWallet, 
-  onWalletConnected, 
-  onWalletError,
-  offWalletConnected,
-  offWalletError,
-  WalletData
-} from '@/lib/utils/walletBridge';
+import { PuzzleWalletService } from '@/lib/services/PuzzleWalletService';
 
 /**
  * Level2Scene - Digital Defense
@@ -31,16 +24,19 @@ export default class Level2Scene extends Scene {
   private exitGate?: Phaser.Physics.Arcade.Sprite;
   private hasKeycard: boolean = false; // Whether player has received keycard from receptionist
   
-  // Wallet integration
+  // Puzzle wallet integration
+  private walletService: PuzzleWalletService;
   private walletConnected: boolean = false;
+  private walletAddress: string = '';
   private walletConnectionPending: boolean = false;
-  private walletSkipped: boolean = false; // Flag to track if user skipped the wallet connection
-  private walletAddress?: string;
+  private messageSigned: boolean = false;
+
   private walletDialogueGroup?: Phaser.GameObjects.Group;
   private temporaryMessageGroup?: Phaser.GameObjects.Group; // Group for temporary messages
 
   constructor() {
     super({ key: 'Level2Scene' });
+    this.walletService = PuzzleWalletService.getInstance();
   }
 
   init() {
@@ -52,88 +48,9 @@ export default class Level2Scene extends Scene {
     
     // Initialize interactive objects array
     this.interactiveObjects = [];
-    
-    // Reset wallet integration state
-    this.walletConnected = false;
-    this.walletAddress = '';
-    this.walletConnectionPending = false;
-    
-    // Check for existing wallet connection
-    this.checkStoredWalletConnection();
-    
-    // Set up wallet connection listeners
-    this.setupWalletListeners();
+  
   }
 
-  // Check if wallet connection is stored in localStorage
-  checkStoredWalletConnection() {
-    if (typeof window !== 'undefined') {
-      const savedConnection = localStorage.getItem('walletConnection');
-      if (savedConnection) {
-        try {
-          const { address } = JSON.parse(savedConnection);
-          if (address) {
-            console.log('Found stored wallet connection:', address);
-            this.walletConnected = true;
-            this.walletAddress = address;
-            this.hasKeycard = true; // Auto-grant keycard if wallet is connected
-          }
-        } catch (e) {
-          console.error('Error parsing stored wallet connection:', e);
-        }
-      }
-    }
-  }
-
-  // Add wallet connection listeners
-  setupWalletListeners() {
-    // Handle successful wallet connection
-    const handleWalletConnected = (walletData: WalletData) => {
-      console.log('Wallet connected in game:', walletData);
-      this.walletConnected = true;
-      this.walletAddress = walletData.address;
-      this.walletConnectionPending = false;
-      
-      // Store connection in localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('walletConnection', JSON.stringify({
-          address: walletData.address
-        }));
-      }
-      
-      // If dialogue is open, update it
-      if (this.walletDialogueGroup && !this.walletDialogueGroup.getChildren().some(child => !child.active)) {
-        this.displayWalletConnectedSuccess();
-      }
-      
-      // Give keycard to player if they don't already have it
-      if (!this.hasKeycard) {
-        this.hasKeycard = true;
-      }
-    };
-    
-    // Handle wallet connection errors
-    const handleWalletError = (error: string) => {
-      console.error('Wallet error in game:', error);
-      this.walletConnectionPending = false;
-      
-      // If dialogue is open, update it with error
-      if (this.walletDialogueGroup && !this.walletDialogueGroup.getChildren().some(child => !child.active)) {
-        this.displayWalletConnectionError(error);
-      }
-    };
-    
-    // Register event listeners
-    onWalletConnected(handleWalletConnected);
-    onWalletError(handleWalletError);
-    
-    // Cleanup function will be called when this scene is shutdown
-    this.events.on('shutdown', () => {
-      // Cleanup event listeners when scene is destroyed
-      offWalletConnected(handleWalletConnected);
-      offWalletError(handleWalletError);
-    });
-  }
 
   preload() {
     // Check if critical textures already exist from other scenes
@@ -283,7 +200,7 @@ export default class Level2Scene extends Scene {
     wallCanvas.refresh();
   }
 
-  create() {
+  async create() {
     // Disable physics debugging
     this.physics.world.debugGraphic.clear();
     this.physics.world.debugGraphic.visible = false;
@@ -354,11 +271,73 @@ export default class Level2Scene extends Scene {
       this.cameras.main.setDeadzone(100, 100);
     }
     
-    // Show welcome message for level 2
-  
-
+    // Setup wallet connection checking - wrapping in try/catch and swallowing any errors
+    this.setupWalletConnection();
+    
     // Create the exit gate
     this.createExitGate();
+  }
+  
+  /**
+   * Setup wallet connection checking in a separate method
+   * to keep the create method cleaner
+   */
+  private async setupWalletConnection() {
+    try {
+      // First check if console.error is being logged to the browser console
+      const originalConsoleError = console.error;
+      const temporaryErrorLog: string[] = [];
+      
+      // Temporarily override console.error to suppress wallet connection errors
+      console.error = (...args) => {
+        const errorMessage = args.length > 0 ? String(args[0]) : '';
+        
+        // Capture the error for debugging but don't output to console
+        temporaryErrorLog.push(errorMessage);
+        
+        // If any of these strings are in the error message, suppress the error
+        const suppressPatterns = [
+          'TRPCClientError',
+          'No connection found for hostname',
+          'Puzzle Wallet',
+          'wallet',
+          'extension',
+          'getAccount'
+        ];
+        
+        // Check if any suppression pattern matches the error message
+        const shouldSuppress = suppressPatterns.some(pattern => 
+          errorMessage.toLowerCase().includes(pattern.toLowerCase())
+        );
+        
+        if (shouldSuppress) {
+          // Don't log this error to console
+          console.log('[Level2Scene] Suppressed wallet error:', args[0]);
+          return;
+        }
+        
+        // Log other errors normally
+        originalConsoleError.apply(console, args);
+      };
+      
+      // Quietly check for wallet connection - suppress all console output
+      // Pass false to actually call the API and check for a connection
+      await this.walletService.refreshConnection(false).catch(() => {
+        // Completely swallow any errors - wallet will be required at interaction time
+      });
+      
+      // Restore original console.error behavior
+      console.error = originalConsoleError;
+      
+      // Only update state if wallet is connected
+      if (this.walletService.isConnected()) {
+        this.walletConnected = true;
+        this.walletAddress = this.walletService.getAddress() || '';
+      }
+    } catch {
+      // Completely swallow any errors - wallet will be required at interaction time
+      // Do not log anything to console or disrupt game flow
+    }
   }
   
   /**
@@ -704,7 +683,7 @@ export default class Level2Scene extends Scene {
   }
 
   /**
-   * Show dialogue when interacting with the receptionist
+   * Show dialogue from receptionist
    */
   showReceptionistDialogue() {
     // Create a dialogue box
@@ -724,13 +703,26 @@ export default class Level2Scene extends Scene {
     dialogueBox.setStrokeStyle(2, 0xFFFFFF);
     dialogueBox.setData('role', 'dialogBox');
     
-    // Different dialogue based on wallet connection status
-    let message;
-    if (this.walletConnected && this.walletAddress) {
-      message = `Welcome back! Your identity has been verified with address ${this.formatWalletAddress(this.walletAddress)}. Your security keycard is ready to use.`;
+    let message = '';
+    let buttonText = '';
+    let buttonColor = 0x4CAF50; // Default green
+    
+    // Determine message based on wallet connection state
+    if (this.walletService.isConnected() && this.messageSigned) {
+      // Wallet is connected and message is signed - provide keycard
+      message = `Welcome! Your identity has been verified with address ${this.walletService.formatAddress(this.walletService.getAddress() || 'unknown')}. Your security keycard is ready to use.`;
+      buttonText = 'Take Keycard';
+      buttonColor = 0x4CAF50; // Green
+    } else if (this.walletService.isConnected() && !this.messageSigned) {
+      // Wallet is connected but signature needed
+      message = `Please sign a message to verify your identity and gain access to secured areas.`;
+      buttonText = 'Sign Message';
+      buttonColor = 0x2196F3; // Blue
     } else {
-      // First-time message focusing on wallet setup
-      message = "Hello! To access secure areas in the Digital Defense department, you need to verify your identity with your Puzzle Wallet. This ensures only authorized personnel can access private data.";
+      // Wallet not connected
+      message = 'Welcome to the Digital Defense Center! Please connect your Puzzle wallet to verify your identity and receive a security keycard.';
+      buttonText = 'Connect Wallet';
+      buttonColor = 0xFFA000; // Orange
     }
     
     const text = this.add.text(
@@ -749,39 +741,35 @@ export default class Level2Scene extends Scene {
     text.setOrigin(0.5);
     text.setData('role', 'mainText');
     
-    // Different buttons based on wallet connection status
-    const buttonWidth = 160;
-    const buttonHeight = 40;
-    
-    // Connect Wallet button or Continue button
+    // Create action button
     const actionButton = this.add.rectangle(
       width / 2,
       height - 60,
-      buttonWidth,
-      buttonHeight,
-      this.walletConnected ? 0x4CAF50 : 0x2196F3 // Green if connected, Blue if not
+      160,
+      40,
+      buttonColor
     );
     actionButton.setScrollFactor(0);
     actionButton.setInteractive({ useHandCursor: true });
     actionButton.setVisible(false); // Hide initially
     actionButton.setData('role', 'actionButton');
     
-    const buttonText = this.add.text(
+    const buttonTextObj = this.add.text(
       width / 2,
       height - 60, 
-      this.walletConnected ? 'Continue' : 'Connect Wallet',
+      buttonText,
       {
         fontSize: '16px',
         color: '#FFFFFF'
       }
     );
-    buttonText.setScrollFactor(0);
-    buttonText.setOrigin(0.5);
-    buttonText.setVisible(false); // Hide initially
-    buttonText.setData('role', 'buttonText');
+    buttonTextObj.setScrollFactor(0);
+    buttonTextObj.setOrigin(0.5);
+    buttonTextObj.setVisible(false); // Hide initially
+    buttonTextObj.setData('role', 'buttonText');
     
     // Group all dialogue elements
-    this.walletDialogueGroup = this.add.group([dialogueBox, text, actionButton, buttonText]);
+    this.walletDialogueGroup = this.add.group([dialogueBox, text, actionButton, buttonTextObj]);
     
     // Typewriter effect
     let currentChar = 0;
@@ -797,20 +785,63 @@ export default class Level2Scene extends Scene {
         if (currentChar > message.length) {
           typewriterTimer.destroy();
           actionButton.setVisible(true);
-          buttonText.setVisible(true);
+          buttonTextObj.setVisible(true);
         }
       },
       repeat: message.length
     });
     
     // Function to handle button click
-    const handleButtonClick = () => {
-      if (this.walletConnected) {
-        // Already connected, just proceed
+    const handleButtonClick = async () => {
+      // Disable button to prevent multiple clicks
+      actionButton.disableInteractive();
+      buttonTextObj.setText('Please wait...');
+      
+      if (this.walletService.isConnected() && this.messageSigned) {
+        // If wallet connected and message signed, give keycard
         this.cleanupDialogue();
-      } else {
-        // Show wallet setup instructions
-        this.showWalletSetupInstructions();
+        this.hasKeycard = true;
+        // Add success particles for visual effect
+        this.addWalletSuccessParticles();
+      } 
+      else if (this.walletService.isConnected() && !this.messageSigned) {
+        // If wallet connected but message not signed, request signature
+        const message = "I verify my identity to access the Digital Defense Center";
+        const signatureResponse = await this.walletService.signMessage(message);
+        
+        if (signatureResponse) {
+          // Signature successful
+          this.messageSigned = true;
+          this.cleanupDialogue();
+          // Show new dialogue with keycard option
+          this.time.delayedCall(500, () => this.showReceptionistDialogue());
+        } else {
+          // Signature failed or rejected
+          buttonTextObj.setText('Sign Message');
+          actionButton.setInteractive({ useHandCursor: true });
+          
+          // Show error message
+          this.showTemporaryMessage('Signature failed or rejected. Please try again.');
+        }
+      } 
+      else {
+        // If wallet not connected, try to connect
+        const connected = await this.walletService.connectWallet();
+        
+        if (connected) {
+          this.walletConnected = true;
+          this.walletAddress = this.walletService.getAddress() || '';
+          this.cleanupDialogue();
+          // Show new dialogue for signature
+          this.time.delayedCall(500, () => this.showReceptionistDialogue());
+        } else {
+          // Connection failed
+          buttonTextObj.setText('Connect Wallet');
+          actionButton.setInteractive({ useHandCursor: true });
+          
+          // Show error message
+          this.showTemporaryMessage('Wallet connection failed. Please try again.');
+        }
       }
     };
     
@@ -819,280 +850,77 @@ export default class Level2Scene extends Scene {
     
     // Add keyboard support for Enter key
     this.input.keyboard?.on('keydown-ENTER', () => {
-      if (actionButton.visible) {
+      if (actionButton.visible && actionButton.input?.enabled) {
         handleButtonClick();
       }
     });
     
     // Add hover effects
     actionButton.on('pointerover', () => {
-      actionButton.setFillStyle(this.walletConnected ? 0x45A049 : 0x1E88E5);
+      actionButton.setFillStyle(buttonColor - 0x080808);
     });
     actionButton.on('pointerout', () => {
-      actionButton.setFillStyle(this.walletConnected ? 0x4CAF50 : 0x2196F3);
+      actionButton.setFillStyle(buttonColor);
     });
   }
-  
-  // Show detailed wallet setup instructions
-  showWalletSetupInstructions() {
-    if (!this.walletDialogueGroup) return;
+
+  /**
+   * Show a temporary message that fades out
+   */
+  showTemporaryMessage(message: string, duration: number = 3000) {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
     
-    // Get necessary elements from dialogue group
-    const children = this.walletDialogueGroup.getChildren();
-    const mainText = children.find(child => child.getData('role') === 'mainText') as Phaser.GameObjects.Text;
-    const button = children.find(child => child.getData('role') === 'actionButton') as Phaser.GameObjects.Rectangle;
-    const buttonText = children.find(child => child.getData('role') === 'buttonText') as Phaser.GameObjects.Text;
-    
-    // Update text with clearer wallet setup instructions
-    if (mainText) {
-      mainText.setText(
-        "To connect your Puzzle Wallet:\n\n" +
-        "1. Click 'Connect Wallet' to initiate the connection\n" +
-        "2. When prompted, approve the connection request in the extension"
-      );
+    // Remove any existing temporary message
+    if (this.temporaryMessageGroup) {
+      this.temporaryMessageGroup.destroy(true);
     }
     
-    // Create a visual cue pointing to the browser extension area
-    const arrowGraphics = this.add.graphics();
-    arrowGraphics.lineStyle(3, 0xFFFFFF, 1);
-    arrowGraphics.beginPath();
-    arrowGraphics.moveTo(this.cameras.main.width - 100, 100);
-    arrowGraphics.lineTo(this.cameras.main.width - 50, 30);
-    arrowGraphics.strokePath();
-    
-    // Add a pulsing circle around where the extension would be
-    const extensionCircle = this.add.circle(this.cameras.main.width - 30, 20, 15, 0x2196F3, 0.6);
-    this.tweens.add({
-      targets: extensionCircle,
-      alpha: 0.2,
-      scale: 1.3,
-      duration: 800,
-      yoyo: true,
-      repeat: -1
-    });
-    
-    // Add both graphics to the dialogue group
-    this.walletDialogueGroup.add(arrowGraphics);
-    this.walletDialogueGroup.add(extensionCircle);
-    
-    // Create a "Download Wallet" button for users who don't have it yet
-    const downloadButton = this.add.rectangle(
-      button.x - 120,
-      button.y,
-      160,
-      40,
-      0xFF5722
+    // Create background
+    const msgBackground = this.add.rectangle(
+      width / 2,
+      height / 2 - 50,
+      width - 60,
+      80,
+      0x000000,
+      0.8
     );
-    downloadButton.setScrollFactor(0);
-    downloadButton.setInteractive({ useHandCursor: true });
-    downloadButton.setData('role', 'downloadButton');
+    msgBackground.setScrollFactor(0);
+    msgBackground.setStrokeStyle(1, 0xFF5722);
     
-    const downloadButtonText = this.add.text(
-      downloadButton.x,
-      downloadButton.y, 
-      'Download Wallet',
+    // Create text
+    const msgText = this.add.text(
+      width / 2,
+      height / 2 - 50,
+      message,
       {
-        fontSize: '16px',
-        color: '#FFFFFF'
+        fontSize: '18px',
+        color: '#FFFFFF',
+        align: 'center',
+        wordWrap: { width: width - 80 }
       }
     );
-    downloadButtonText.setScrollFactor(0);
-    downloadButtonText.setOrigin(0.5);
-    downloadButtonText.setData('role', 'downloadButtonText');
+    msgText.setScrollFactor(0);
+    msgText.setOrigin(0.5);
     
-    // Add hover effects for download button
-    downloadButton.on('pointerover', () => {
-      downloadButton.setFillStyle(0xE64A19);
-    });
-    downloadButton.on('pointerout', () => {
-      downloadButton.setFillStyle(0xFF5722);
-    });
+    // Group elements
+    this.temporaryMessageGroup = this.add.group([msgBackground, msgText]);
     
-    // Handle download button click
-    downloadButton.on('pointerdown', () => {
-      // Open the Puzzle Wallet download page in a new tab
-      if (typeof window !== 'undefined') {
-        window.open('https://chromewebstore.google.com/detail/puzzle-aleo-wallet/fdchdcpieegfofnofhgdombfckhbcokj', '_blank');
-      }
-    });
-    
-    // Add download button to dialogue group
-    this.walletDialogueGroup.add(downloadButton);
-    this.walletDialogueGroup.add(downloadButtonText);
-    
-    // Update "Connect Wallet" button position
-    if (button && buttonText) {
-      button.setX(button.x + 120);
-      buttonText.setX(buttonText.x + 120);
-      buttonText.setText('Connect Wallet');
-      
-      // Remove previous listeners
-      button.off('pointerdown');
-      
-      // Add new listener that initiates wallet connection
-      button.on('pointerdown', () => {
-        // Remove the visual cues
-        arrowGraphics.destroy();
-        extensionCircle.destroy();
-        
-        // Clean up download button
-        downloadButton.destroy();
-        downloadButtonText.destroy();
-        
-        // Reset Connect button position
-        button.setX(button.x - 120);
-        buttonText.setX(buttonText.x - 120);
-        
-        // Proceed with wallet connection
-        this.initiateWalletConnection();
-      });
-    }
-  }
-  
-  // Format wallet address to show only beginning and end
-  formatWalletAddress(address: string): string {
-    if (!address || address.length < 10) return address;
-    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-  }
-  
-  // Initiate wallet connection
-  initiateWalletConnection() {
-    console.log('[Level2Scene] Initiating wallet connection...');
-    
-    // Log available wallet adapters if any
-    if (typeof window !== 'undefined') {
-      // Check for puzzle object on window
-      console.log('[Level2Scene] Checking for Puzzle Wallet on window:', 'puzzle' in window);
-      
-      // Log installed wallets we can detect
-      const detectedWallets = [];
-      if ('puzzle' in window) detectedWallets.push('Puzzle');
-      if ('leo' in window) detectedWallets.push('Leo');
-      if ('fox' in window) detectedWallets.push('Fox');
-      if ('soter' in window) detectedWallets.push('Soter');
-      
-      console.log('[Level2Scene] Detected wallet(s) on window:', detectedWallets.length ? detectedWallets.join(', ') : 'None');
-    }
-    
-    // If already connected, don't try again
-    if (this.walletConnected) {
-      console.log('[Level2Scene] Already connected, skipping connection');
-      if (this.walletDialogueGroup) {
-        this.displayWalletConnectedSuccess();
-      }
-      return;
-    }
-    
-    // If connection is already pending, prevent duplicate attempts
-    if (this.walletConnectionPending) {
-      console.log('[Level2Scene] Connection already in progress');
-      return;
-    }
-    
-    // Update button state to show connecting
-    if (this.walletDialogueGroup) {
-      const children = this.walletDialogueGroup.getChildren();
-      const button = children.find(child => child.getData('role') === 'actionButton') as Phaser.GameObjects.Rectangle;
-      const buttonText = children.find(child => child.getData('role') === 'buttonText') as Phaser.GameObjects.Text;
-      const mainText = children.find(child => child.getData('role') === 'mainText') as Phaser.GameObjects.Text;
-      
-      if (button && buttonText) {
-        button.setFillStyle(0xCCCCCC);
-        button.removeInteractive();
-        buttonText.setText('Connecting...');
-      }
-      
-      if (mainText) {
-        mainText.setText(
-          'Contacting Puzzle Wallet extension...\n\n' +
-          'If you have Puzzle Wallet installed, you should see a connection request popup.\n\n' +
-          'If nothing happens, make sure the extension is installed and unlocked.'
-        );
-      }
-    }
-    
-    // Set pending flag
-    this.walletConnectionPending = true;
-    
-    try {
-      // Add a small delay before initiating connection
-      // This helps avoid race conditions with wallet selection
-      setTimeout(() => {
-        try {
-          // Trigger wallet connection
-          connectWallet();
-        } catch (error) {
-          console.error('[Level2Scene] Error triggering wallet connection:', error);
+    // Add fade out effect
+    this.tweens.add({
+      targets: this.temporaryMessageGroup.getChildren(),
+      alpha: 0,
+      delay: duration - 500,
+      duration: 500,
+      onComplete: () => {
+        if (this.temporaryMessageGroup) {
+          this.temporaryMessageGroup.destroy(true);
+          this.temporaryMessageGroup = undefined;
         }
-      }, 1000); // Increased delay for more reliability
-      
-      // Set a timeout to reset the pending state if nothing happens (wallet not responding)
-      setTimeout(() => {
-        if (this.walletConnectionPending) {
-          this.walletConnectionPending = false;
-          
-          // If dialogue is still open, show timeout error
-          if (this.walletDialogueGroup) {
-            this.displayWalletConnectionError(
-              "No response from wallet after 12 seconds. Please check if Puzzle Wallet extension is installed and unlocked."
-            );
-          }
-        }
-      }, 12000); // Increased timeout to 12 seconds
-    } catch (error) {
-      // This is unlikely to be triggered as connectWallet doesn't throw, 
-      // but just in case of unexpected errors
-      console.error('[Level2Scene] Error initiating wallet connection:', error);
-      this.walletConnectionPending = false;
-      
-      if (this.walletDialogueGroup) {
-        this.displayWalletConnectionError("An unexpected error occurred. Please try again.");
       }
-    }
+    });
   }
-  
-  // Display success message when wallet is connected
-  displayWalletConnectedSuccess() {
-    if (!this.walletDialogueGroup) return;
-    
-    const children = this.walletDialogueGroup.getChildren();
-    
-    // Update main text
-    const mainText = children.find(child => child.type === 'Text' && child.getData('role') === 'mainText') as Phaser.GameObjects.Text;
-    if (mainText) {
-      mainText.setText(`Puzzle Wallet connected successfully! Your identity has been verified and you've been issued a security keycard.`);
-    }
-    
-    // Update button
-    const button = children.find(child => child.type === 'Rectangle' && child.getData('role') === 'actionButton') as Phaser.GameObjects.Rectangle;
-    const buttonText = children.find(child => child.type === 'Text' && child.getData('role') === 'buttonText') as Phaser.GameObjects.Text;
-    
-    if (button && buttonText) {
-      button.setFillStyle(0x4CAF50);
-      button.setInteractive({ useHandCursor: true });
-      buttonText.setText('Continue');
-      
-      // Update hover effects
-      button.off('pointerover');
-      button.off('pointerout');
-      button.on('pointerover', () => {
-        button.setFillStyle(0x45A049);
-      });
-      button.on('pointerout', () => {
-        button.setFillStyle(0x4CAF50);
-      });
-      
-      // Update click handler
-      button.off('pointerdown');
-      button.on('pointerdown', () => {
-        this.cleanupDialogue();
-      });
-    }
-    
-    // Add success particles
-    this.addWalletSuccessParticles();
-  }
-  
+
   // Add success particle effect
   addWalletSuccessParticles() {
     const width = this.cameras.main.width;
@@ -1120,343 +948,6 @@ export default class Level2Scene extends Scene {
     }
   }
   
-  // Display error message when wallet connection fails
-  displayWalletConnectionError(error: string) {
-    if (!this.walletDialogueGroup) return;
-    
-    // Log the error for debugging
-    console.error('[Level2Scene] Wallet connection error:', error);
-    
-    const children = this.walletDialogueGroup.getChildren();
-    
-    // Update main text
-    const mainText = children.find(child => child.type === 'Text' && child.getData('role') === 'mainText') as Phaser.GameObjects.Text;
-    if (mainText) {
-      // Check if the error suggests Puzzle Wallet isn't installed
-      const notInstalledPattern = /(not.*installed|not.*found|no wallet|wallet.*unavailable|not.*detected|not.*available)/i;
-      
-      // Check if it's a wallet selection error (which refreshing usually fixes)
-      const selectionErrorPattern = /(wallet not selected|No wallet selected|adapter|failed to select|could not select)/i;
-      
-      // Check for other common errors
-      const connectionErrorPattern = /(connection failed|connect.*failed|cannot connect|failed to connect)/i;
-      
-      if (notInstalledPattern.test(error)) {
-        mainText.setText(
-          "Puzzle Wallet extension doesn't appear to be installed.\n\n" +
-          "Please install Puzzle Wallet from the Chrome Web Store and refresh the page.\n\n" +
-          "The page will auto-refresh a few times to detect the wallet."
-        );
-      } else if (selectionErrorPattern.test(error)) {
-        mainText.setText(
-          "Wallet connection is having trouble finding Puzzle Wallet.\n\n" +
-          "Please make sure the extension is installed, unlocked, and refresh the page.\n\n" +
-          "The page will automatically refresh to try detecting the wallet again.\n\n" +
-          "If problems persist, you can bypass this step for now and continue playing."
-        );
-      } else if (connectionErrorPattern.test(error)) {
-        mainText.setText(
-          "Connection to Puzzle Wallet failed.\n\n" +
-          "Please check if the extension is running properly and try again.\n\n" +
-          "If problems persist after a few attempts, you can continue without a wallet."
-        );
-      } else {
-        mainText.setText(
-          `Error connecting to Puzzle Wallet.\n\n${error}\n\n` +
-          "If you continue having problems, you can skip this step for now."
-        );
-      }
-    }
-    
-    // Reset the pending flag
-    this.walletConnectionPending = false;
-    
-    // Update button
-    const button = children.find(child => child.type === 'Rectangle' && child.getData('role') === 'actionButton') as Phaser.GameObjects.Rectangle;
-    const buttonText = children.find(child => child.type === 'Text' && child.getData('role') === 'buttonText') as Phaser.GameObjects.Text;
-    
-    if (button && buttonText) {
-      // Check if we need to provide download option
-      const notInstalledPattern = /(not.*installed|not.*found|no wallet|wallet.*unavailable|not.*detected|not.*available)/i;
-      
-      // Check for wallet selection errors
-      const selectionErrorPattern = /(wallet not selected|No wallet selected|adapter|failed to select|could not select)/i;
-      
-      if (notInstalledPattern.test(error)) {
-        button.setFillStyle(0xFF5722); // Orange for download
-        buttonText.setText('Get Puzzle Wallet');
-        
-        // Update hover effects
-        button.off('pointerover');
-        button.off('pointerout');
-        button.on('pointerover', () => {
-          button.setFillStyle(0xE64A19);
-        });
-        button.on('pointerout', () => {
-          button.setFillStyle(0xFF5722);
-        });
-        
-        // Update click handler to open download page
-        button.off('pointerdown');
-        button.on('pointerdown', () => {
-          if (typeof window !== 'undefined') {
-            window.open('https://chromewebstore.google.com/detail/puzzle-aleo-wallet/fdchdcpieegfofnofhgdombfckhbcokj', '_blank');
-          }
-        });
-        
-        // Add "Continue Without Wallet" button
-        this.addContinueWithoutWalletButton();
-      } else if (selectionErrorPattern.test(error)) {
-        // For selection errors, show a REFRESH button
-        button.setFillStyle(0xF57C00); // Deep orange
-        button.setInteractive({ useHandCursor: true });
-        buttonText.setText('Refresh Page');
-        
-        // Update hover effects
-        button.off('pointerover');
-        button.off('pointerout');
-        button.on('pointerover', () => {
-          button.setFillStyle(0xEF6C00);
-        });
-        button.on('pointerout', () => {
-          button.setFillStyle(0xF57C00);
-        });
-        
-        // Update click handler to refresh the page
-        button.off('pointerdown');
-        button.on('pointerdown', () => {
-          if (typeof window !== 'undefined') {
-            window.location.reload();
-          }
-        });
-        
-        // Add a second button for trying again
-        const tryAgainButton = this.add.rectangle(
-          button.x - 180,
-          button.y,
-          160,
-          40,
-          0x2196F3
-        );
-        tryAgainButton.setScrollFactor(0);
-        tryAgainButton.setInteractive({ useHandCursor: true });
-        tryAgainButton.setData('role', 'tryAgainButton');
-        
-        const tryAgainText = this.add.text(
-          tryAgainButton.x,
-          tryAgainButton.y,
-          'Try Again',
-          {
-            fontSize: '16px',
-            color: '#FFFFFF'
-          }
-        );
-        tryAgainText.setScrollFactor(0);
-        tryAgainText.setOrigin(0.5);
-        tryAgainText.setData('role', 'tryAgainText');
-        
-        // Add hover effects
-        tryAgainButton.on('pointerover', () => {
-          tryAgainButton.setFillStyle(0x1E88E5);
-        });
-        tryAgainButton.on('pointerout', () => {
-          tryAgainButton.setFillStyle(0x2196F3);
-        });
-        
-        // Add click handler - this needs to be fixed to correctly initiate a new connection attempt
-        tryAgainButton.on('pointerdown', () => {
-          // Remove the extra button before trying again
-          tryAgainButton.destroy();
-          tryAgainText.destroy();
-          
-          // Reset position of the main button
-          button.setX(button.x + 90);
-          buttonText.setX(buttonText.x + 90);
-          
-          // Try again - with slight delay to ensure previous error is cleared
-          setTimeout(() => {
-            this.initiateWalletConnection();
-          }, 500);
-        });
-        
-        // Add to dialogue group
-        this.walletDialogueGroup.add(tryAgainButton);
-        this.walletDialogueGroup.add(tryAgainText);
-        
-        // Move the refresh button to the right
-        button.setX(button.x + 90);
-        buttonText.setX(buttonText.x + 90);
-        
-        // Add "Continue Without Wallet" button after multiple failed attempts
-        this.addContinueWithoutWalletButton(button.y + 60);
-        
-      } else {
-        // Regular try again button
-        button.setFillStyle(0x2196F3);
-        button.setInteractive({ useHandCursor: true });
-        buttonText.setText('Try Again');
-        
-        // Update hover effects
-        button.off('pointerover');
-        button.off('pointerout');
-        button.on('pointerover', () => {
-          button.setFillStyle(0x1E88E5);
-        });
-        button.on('pointerout', () => {
-          button.setFillStyle(0x2196F3);
-        });
-        
-        // Update click handler with slight delay to ensure previous error is cleared
-        button.off('pointerdown');
-        button.on('pointerdown', () => {
-          setTimeout(() => {
-            this.initiateWalletConnection();
-          }, 500);
-        });
-        
-        // Add "Continue Without Wallet" button after multiple failed attempts
-        this.addContinueWithoutWalletButton(button.y + 60);
-      }
-    }
-  }
-  
-  // Add a button to continue without wallet
-  addContinueWithoutWalletButton(yOffset?: number) {
-    if (!this.walletDialogueGroup) return;
-    
-    // Find center position
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    // Create a "Continue Without Wallet" button 
-    const continueButton = this.add.rectangle(
-      width / 2,
-      yOffset || height - 70,
-      240,
-      40,
-      0x795548 // Brown
-    );
-    continueButton.setScrollFactor(0);
-    continueButton.setInteractive({ useHandCursor: true });
-    continueButton.setData('role', 'continueWithoutWalletButton');
-    
-    const continueButtonText = this.add.text(
-      continueButton.x,
-      continueButton.y,
-      'Continue Without Wallet',
-      {
-        fontSize: '16px',
-        color: '#FFFFFF',
-        align: 'center'
-      }
-    );
-    continueButtonText.setScrollFactor(0);
-    continueButtonText.setOrigin(0.5);
-    continueButtonText.setData('role', 'continueWithoutWalletText');
-    
-    // Add hover effects
-    continueButton.on('pointerover', () => {
-      continueButton.setFillStyle(0x6D4C41);
-    });
-    continueButton.on('pointerout', () => {
-      continueButton.setFillStyle(0x795548);
-    });
-    
-    // Add click handler to bypass wallet connection
-    continueButton.on('pointerdown', () => {
-      console.log('[Level2Scene] User opted to continue without wallet');
-      
-      // Clean up the dialogue
-      this.cleanupDialogue();
-      
-      // Set a flag that user chose to skip this
-      this.walletSkipped = true;
-      
-      // Show an alternative message about the security keycard
-      const messageBox = this.add.rectangle(
-        width / 2,
-        height / 2,
-        width - 100,
-        180,
-        0x000000,
-        0.8
-      );
-      messageBox.setScrollFactor(0);
-      messageBox.setOrigin(0.5);
-      
-      const messageText = this.add.text(
-        width / 2,
-        height / 2,
-        "The receptionist gives you a temporary visitor keycard.\n\n" +
-        "\"This will give you limited access to the facility.\"\n\n" +
-        "You've gained a security keycard!",
-        {
-          fontSize: '18px',
-          color: '#FFFFFF',
-          align: 'center',
-          wordWrap: { width: width - 140 }
-        }
-      );
-      messageText.setScrollFactor(0);
-      messageText.setOrigin(0.5);
-      
-      // Add a close button
-      const closeButton = this.add.rectangle(
-        width / 2,
-        height / 2 + 80,
-        120,
-        40,
-        0x4CAF50
-      );
-      closeButton.setScrollFactor(0);
-      closeButton.setOrigin(0.5);
-      closeButton.setInteractive({ useHandCursor: true });
-      
-      const closeButtonText = this.add.text(
-        closeButton.x,
-        closeButton.y,
-        'Continue',
-        {
-          fontSize: '16px',
-          color: '#FFFFFF'
-        }
-      );
-      closeButtonText.setScrollFactor(0);
-      closeButtonText.setOrigin(0.5);
-      
-      // Add hover effects
-      closeButton.on('pointerover', () => {
-        closeButton.setFillStyle(0x45A049);
-      });
-      closeButton.on('pointerout', () => {
-        closeButton.setFillStyle(0x4CAF50);
-      });
-      
-      // Close the message and give keycard
-      closeButton.on('pointerdown', () => {
-        messageBox.destroy();
-        messageText.destroy();
-        closeButton.destroy();
-        closeButtonText.destroy();
-        
-        // Give the keycard to the player
-        this.hasKeycard = true;
-      });
-      
-      // Create a temporary group for these elements
-      this.temporaryMessageGroup = this.add.group([
-        messageBox,
-        messageText,
-        closeButton,
-        closeButtonText
-      ]);
-    });
-    
-    // Add to dialogue group
-    this.walletDialogueGroup.add(continueButton);
-    this.walletDialogueGroup.add(continueButtonText);
-  }
-  
   // Clean up dialogue and proceed
   cleanupDialogue() {
     // Remove the keyboard listener
@@ -1478,15 +969,7 @@ export default class Level2Scene extends Scene {
       const width = this.cameras.main.width;
       const height = this.cameras.main.height;
       
-      let message = '';
-      // Adjust message based on wallet status (connected, skipped, or not attempted)
-      if (this.walletSkipped) {
-        message = "You need to get a security keycard from the receptionist desk first.";
-      } else if (!this.walletConnected) {
-        message = "You need to connect your Puzzle Wallet at the receptionist desk first to receive a keycard.";
-      } else {
-        message = "You need to talk to the receptionist first to get your security keycard.";
-      }
+      const message = "You need to get a security keycard from the receptionist desk first.";
       
       const noKeycardText = this.add.text(
         width / 2,
@@ -1496,23 +979,36 @@ export default class Level2Scene extends Scene {
           fontSize: '18px',
           color: '#FFFFFF',
           backgroundColor: '#00000080',
-          padding: { x: 20, y: 10 },
-          align: 'center',
-          wordWrap: { width: width - 100 }
+          padding: { x: 15, y: 10 },
         }
       );
       noKeycardText.setScrollFactor(0);
       noKeycardText.setOrigin(0.5);
       
-      // Auto-destroy after 3 seconds
-      this.time.delayedCall(3000, () => {
-        noKeycardText.destroy();
+      // Auto fade out after 3 seconds
+      this.tweens.add({
+        targets: noKeycardText,
+        alpha: 0,
+        duration: 500,
+        delay: 2500,
+        onComplete: () => {
+          noKeycardText.destroy();
+        }
       });
       
       return;
     }
     
-    // Player has keycard, open the gate
+    // Player has the keycard, open the exit gate
+    console.log('[Level2Scene] Using keycard on wall terminal');
+    
+    // Disable the keycard wall interaction
+    if (this.keycardWall) {
+      this.keycardWall.removeInteractive();
+      this.keycardWall.setData('visible', false);
+    }
+    
+    // Open the exit gate
     this.openExitGate();
   }
 
