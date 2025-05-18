@@ -3,6 +3,7 @@
 import { Scene } from 'phaser';
 import { loadTilemap, addCollision, MapLayers } from '@/lib/utils/mapLoader';
 import Player from '@/lib/classes/Player';
+import { PuzzleWalletService } from '@/lib/services/PuzzleWalletService';
 
 /**
  * Level4Scene - Advanced Topics
@@ -28,8 +29,18 @@ export default class Level4Scene extends Scene {
   // Remove the shared indicator and track object-specific indicators
   private interactionIndicators: Map<Phaser.GameObjects.GameObject, Phaser.GameObjects.Sprite> = new Map();
 
+  // Wallet integration for NFT minting
+  private walletService: PuzzleWalletService;
+  private walletConnected: boolean = false;
+  private walletAddress: string = '';
+  private nftMinted: boolean = false;
+  private nftMintingInProgress: boolean = false;
+  private nftTransactionId: string | null = null;
+  private mintDialogueGroup?: Phaser.GameObjects.Group;
+
   constructor() {
     super({ key: 'Level4Scene' });
+    this.walletService = PuzzleWalletService.getInstance();
   }
 
   init() {
@@ -896,7 +907,7 @@ export default class Level4Scene extends Scene {
       const alreadyHasText = this.add.text(
         width / 2,
         height / 2,
-        "Guard: You already have the keycard.\nUse it at the terminal to open the gate.",
+        "Guard: You already have your graduation NFT and keycard.\nUse it at the terminal to open the gate.",
         {
           fontSize: '18px',
           color: '#FFFFFF',
@@ -910,8 +921,27 @@ export default class Level4Scene extends Scene {
       this.time.delayedCall(3000, () => {
         alreadyHasText.destroy();
       });
+    } else if (this.nftMintingInProgress) {
+      // If NFT minting is in progress
+      const mintingText = this.add.text(
+        width / 2,
+        height / 2,
+        "Please wait while your NFT is being minted...",
+        {
+          fontSize: '18px',
+          color: '#FFFFFF',
+          backgroundColor: '#00000080',
+          padding: { x: 20, y: 10 },
+          align: 'center'
+        }
+      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+      
+      // Remove text after a few seconds
+      this.time.delayedCall(3000, () => {
+        mintingText.destroy();
+      });
     } else {
-      // Create an interactive dialogue box
+      // Create an interactive dialogue box for NFT minting
       const dialogueBox = this.add.rectangle(
         width / 2,
         height - 120,
@@ -987,59 +1017,37 @@ export default class Level4Scene extends Scene {
       denyText.setOrigin(0.5);
       
       // Group all dialogue elements
-      const dialogueGroup = this.add.group([
+      this.mintDialogueGroup = this.add.group([
         dialogueBox, text, 
         mintButton, mintText, 
         denyButton, denyText
       ]);
       
       // Handle "Mint" button click
-      mintButton.on('pointerdown', () => {
-        // Update the dialogue text to show minting in progress
-        text.setText("Minting your graduation NFT...");
+      mintButton.on('pointerdown', async () => {
+        // Disable buttons to prevent multiple clicks
+        mintButton.disableInteractive();
+        denyButton.disableInteractive();
         
-        // Hide the buttons
-        mintButton.setVisible(false);
-        mintText.setVisible(false);
-        denyButton.setVisible(false);
-        denyText.setVisible(false);
+        // Update the text to show minting in progress
+        text.setText("Connecting to your wallet...\nPlease approve the transaction when prompted.");
         
-        // After a short delay, show completion and give keycard
-        this.time.delayedCall(2000, () => {
-          dialogueGroup.destroy(true);
-          
-          // Show minting completion message
-          const mintingCompleteText = this.add.text(
-            width / 2,
-            height / 2,
-            "NFT Minted successfully!\nGuard: Here's your keycard as a reward!",
-            {
-              fontSize: '18px',
-              color: '#FFFFFF',
-              backgroundColor: '#00000080',
-              padding: { x: 20, y: 10 },
-              align: 'center'
-            }
-          ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-          
-          // Give the keycard after dialogue finishes
-          this.time.delayedCall(3000, () => {
-            mintingCompleteText.destroy();
-            this.collectKeycard();
-          });
-        });
+        // Start minting process
+        this.startNFTMintingProcess(text);
       });
       
       // Handle "Deny" button click
       denyButton.on('pointerdown', () => {
-        // Close the dialogue without giving keycard
-        dialogueGroup.destroy(true);
+        if (this.mintDialogueGroup) {
+          this.mintDialogueGroup.destroy(true);
+          this.mintDialogueGroup = undefined;
+        }
         
-        // Show a brief message
-        const denyText = this.add.text(
+        // Show a message about declining
+        const declineText = this.add.text(
           width / 2,
           height / 2,
-          "Guard: No problem. Let me know if you change your mind.",
+          "You declined to mint the NFT. Talk to the guard again if you change your mind.",
           {
             fontSize: '18px',
             color: '#FFFFFF',
@@ -1049,11 +1057,143 @@ export default class Level4Scene extends Scene {
           }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
         
-        // Remove text after a few seconds
+        // Remove the text after a few seconds
         this.time.delayedCall(3000, () => {
-          denyText.destroy();
+          declineText.destroy();
         });
       });
+      
+      // Add hover effects
+      mintButton.on('pointerover', () => {
+        mintButton.setFillStyle(0x45A049);
+      });
+      mintButton.on('pointerout', () => {
+        mintButton.setFillStyle(0x4CAF50);
+      });
+      
+      denyButton.on('pointerover', () => {
+        denyButton.setFillStyle(0xE53935);
+      });
+      denyButton.on('pointerout', () => {
+        denyButton.setFillStyle(0xF44336);
+      });
+    }
+  }
+  
+  /**
+   * Start the NFT minting process
+   */
+  private async startNFTMintingProcess(dialogueText: Phaser.GameObjects.Text) {
+    this.nftMintingInProgress = true;
+    
+    try {
+      // First check if wallet is connected
+      if (!this.walletService.isConnected()) {
+        dialogueText.setText("Connecting to Puzzle Wallet...\nPlease approve the connection.");
+        
+        // Try to connect wallet
+        const connected = await this.walletService.connectWallet();
+        if (!connected) {
+          throw new Error("Failed to connect wallet. Please try again.");
+        }
+        
+        this.walletConnected = true;
+        this.walletAddress = this.walletService.getAddress() || '';
+      }
+      
+      // Now try to mint the NFT
+      dialogueText.setText("Wallet connected!\nNow minting your graduation NFT...\nPlease approve the transaction.");
+      
+
+      const nftName = `123field`; // Using literal values as in the example
+      const nftImage = `456field`; // Using literal values as in the example
+      const nftEdition = `1scalar`; // Using literal values as in the example
+      
+      // First attempt to mint the NFT
+      let mintResult = await this.walletService.mintLeoNFT(nftName, nftImage, nftEdition);
+      
+      // If minting failed, likely due to permissions, try reconnecting and minting again
+      if (!mintResult) {
+        dialogueText.setText("Reconnecting wallet with proper permissions...\nPlease approve permissions for the NFT contract.");
+        
+        // Disconnect and reconnect to reset permissions
+        await this.walletService.disconnectWallet().catch(() => {});
+        
+        const reconnected = await this.walletService.connectWallet();
+        if (!reconnected) {
+          throw new Error("Failed to reconnect wallet with proper permissions.");
+        }
+        
+        // Try minting again with proper permissions
+        dialogueText.setText("Wallet reconnected!\nNow minting your graduation NFT...\nPlease approve the transaction.");
+        mintResult = await this.walletService.mintLeoNFT(nftName, nftImage, nftEdition);
+      }
+      
+      if (!mintResult) {
+        throw new Error("Minting failed. The transaction was not created.");
+      }
+      
+      // Save the transaction ID - use eventId property instead of id
+      this.nftTransactionId = mintResult.eventId || null;
+      this.nftMinted = true;
+      
+      // Update dialogue with success message
+      if (this.mintDialogueGroup) {
+        this.mintDialogueGroup.destroy(true);
+        this.mintDialogueGroup = undefined;
+      }
+      
+      // Show success message
+      const width = this.cameras.main.width;
+      const height = this.cameras.main.height;
+      
+      const successText = this.add.text(
+        width / 2,
+        height / 2,
+        `Congratulations! Your graduation NFT has been minted!\n\nTransaction ID: ${this.nftTransactionId?.substring(0, 10)}...\n\nYou can check it in the blockchain explorer.`,
+        {
+          fontSize: '18px',
+          color: '#FFFFFF',
+          backgroundColor: '#00000080',
+          padding: { x: 20, y: 10 },
+          align: 'center'
+        }
+      ).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+      
+      // After showing success, give the keycard
+      this.time.delayedCall(5000, () => {
+        successText.destroy();
+        this.collectKeycard();
+      });
+      
+    } catch (error) {
+      console.error('Error in NFT minting process:', error);
+      
+      // Show error message
+      if (this.mintDialogueGroup) {
+        // Fix: Use proper Phaser method to get text element from group
+        const dialogueText = this.mintDialogueGroup.getChildren().find(
+          child => child.type === 'Text'
+        ) as Phaser.GameObjects.Text;
+        
+        if (dialogueText) {
+          dialogueText.setText(`Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease try again.`);
+        }
+        
+        // Re-enable mint button
+        const mintButton = this.mintDialogueGroup.getMatching('type', 'Rectangle')[0] as Phaser.GameObjects.Rectangle;
+        if (mintButton) {
+          mintButton.setInteractive({ useHandCursor: true });
+        }
+        
+        // Re-enable deny button
+        const denyButton = this.mintDialogueGroup.getMatching('type', 'Rectangle')[1] as Phaser.GameObjects.Rectangle;
+        if (denyButton) {
+          denyButton.setInteractive({ useHandCursor: true });
+        }
+      }
+    } finally {
+      this.nftMintingInProgress = false;
     }
   }
 

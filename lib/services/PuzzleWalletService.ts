@@ -110,8 +110,8 @@ export class PuzzleWalletService {
           },
           permissions: {
             programIds: {
-              [Network.AleoTestnet]: [], // We're not using specific programs
-              [Network.AleoMainnet]: []  // We're not using specific programs
+              [Network.AleoTestnet]: ['legend_of_leo_nft.aleo'], // Request permission for our NFT program
+              [Network.AleoMainnet]: ['legend_of_leo_nft.aleo']  // Also request mainnet permissions
             } as ProgramIdPermissions
           }
         });
@@ -399,6 +399,114 @@ export class PuzzleWalletService {
       this.connectionChecked = true;
       this.notifyConnectionListeners(false);
       return false;
+    }
+  }
+  
+  /**
+   * Mint an NFT from the Legend of Leo contract
+   * @param name Name field for the NFT
+   * @param image Image field reference for the NFT
+   * @param edition Edition number as a scalar
+   * @returns Event response if successful
+   */
+  public async mintLeoNFT(
+    name: string = '123field', 
+    image: string = '456field', 
+    edition: string = '1scalar'
+  ): Promise<CreateEventResponse | null> {
+    if (!this.address) {
+      console.error('[PuzzleWalletService] Cannot mint NFT: No account connected');
+      return null;
+    }
+    
+    try {
+      console.log('[PuzzleWalletService] Minting Legend of Leo NFT...');
+      
+      // Suppress console errors during connection attempt
+      const originalConsoleError = console.error;
+      console.error = (...args) => {
+        const errorMessage = args.length > 0 ? String(args[0]) : '';
+        
+        // Suppress wallet-related errors
+        if (
+          errorMessage.includes('TRPCClientError') ||
+          errorMessage.includes('No connection found for hostname') ||
+          errorMessage.includes('Puzzle Wallet') ||
+          errorMessage.includes('wallet')
+        ) {
+          return;
+        }
+        
+        // Log other errors normally
+        originalConsoleError.apply(console, args);
+      };
+      
+      try {
+        // Get the user's address for the receiver parameter
+        const receiver = this.address;
+        
+        // These are the inputs that the mint function expects
+        const inputs = [
+          receiver, // receiver address
+          name,     // name field
+          image,    // image field
+          edition   // edition scalar
+        ];
+        
+        console.log('[PuzzleWalletService] Creating event with inputs:', {
+          type: EventType.Execute,
+          programId: 'legend_of_leo_nft.aleo',
+          functionId: 'mint',
+          fee: 0.01,
+          inputs
+        });
+        
+        // Create the mint event using the deployed contract
+        const eventResponse = await requestCreateEvent({
+          type: EventType.Execute,
+          programId: 'legend_of_leo_nft.aleo', // Use the actual deployed program ID
+          functionId: 'mint',                  // Use the mint function
+          fee: 0.01,                           // Set appropriate fee
+          inputs
+        });
+        
+        // The SDK returns eventId, not id
+        console.log('[PuzzleWalletService] NFT minted successfully:', eventResponse);
+        
+        // Make sure we have the full response with eventId
+        if (!eventResponse.eventId) {
+          console.warn('[PuzzleWalletService] Event response missing eventId:', eventResponse);
+        }
+        
+        return eventResponse;
+      } catch (error) {
+        // Log detailed error information
+        console.error('[PuzzleWalletService] Error in requestCreateEvent:', error);
+        
+        // Check if we need to reconnect with proper permissions
+        if (error instanceof Error && 
+            error.message.includes('No permissions set for any program IDs')) {
+          console.log('[PuzzleWalletService] Attempting to reconnect with proper permissions...');
+          
+          // Disconnect first
+          await this.disconnectWallet().catch(() => {});
+          
+          // Try to reconnect with proper permissions
+          const reconnected = await this.connectWallet();
+          if (reconnected) {
+            console.log('[PuzzleWalletService] Successfully reconnected with proper permissions, try minting again');
+          }
+        }
+        
+        // Re-throw to handle at higher level
+        throw error;
+      } finally {
+        // Restore original error handler
+        console.error = originalConsoleError;
+      }
+    } catch (error) {
+      console.warn('[PuzzleWalletService] Error minting NFT:', error);
+      return null;
     }
   }
 } 
