@@ -1,0 +1,580 @@
+{
+  "compressionlevel": -1,
+  "height": 20,
+  "width": 16,
+  "infinite": false,
+  "backgroundColor": "#112233",
+  "layers": [
+    {
+      "data": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0
+      ],
+      "height": 20,
+      "id": 1,
+      "name": "Floor",
+      "opacity": 1,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "height": 20,
+      "id": 3,
+      "name": "Objects",
+      "opacity": 1,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 2,
+        2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2
+      ],
+      "height": 20,
+      "id": 4,
+      "name": "Collision",
+      "opacity": 0,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26,
+        26, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26,
+        26, 26, 26, 26, 26, 26, 0, 0, 0, 0, 26, 26, 26, 26, 26, 26
+      ],
+      "height": 20,
+      "id": 5,
+      "name": "Backwall",
+      "opacity": 1,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 7,
+      "name": "InteractiveObjects",
+      "objects": [
+        {
+          "height": 0,
+          "id": 1,
+          "name": "veru-cashier",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "Welcome to the Verū building! How can I assist you today?"
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.2
+            }
+          ],
+          "rotation": 0,
+          "type": "cashier",
+          "visible": true,
+          "width": 0,
+          "x": 384,
+          "y": 302
+        },
+        {
+          "height": 0,
+          "id": 2,
+          "name": "veru-computers",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "High-performance computers tracking complex computations to secure the network."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 589,
+          "y": 620
+        },
+        {
+          "height": 0,
+          "id": 3,
+          "name": "exit-left",
+          "point": true,
+          "properties": [
+            {
+              "name": "doorId",
+              "type": "string",
+              "value": "left"
+            }
+          ],
+          "rotation": 0,
+          "type": "exit",
+          "visible": true,
+          "width": 0,
+          "x": 300,
+          "y": 880
+        },
+        {
+          "height": 0,
+          "id": 4,
+          "name": "exit-right",
+          "point": true,
+          "properties": [
+            {
+              "name": "doorId",
+              "type": "string",
+              "value": "right"
+            }
+          ],
+          "rotation": 0,
+          "type": "exit",
+          "visible": true,
+          "width": 0,
+          "x": 500,
+          "y": 880
+        },
+        {
+          "height": 0,
+          "id": 5,
+          "name": "veru-desk",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "A sleek desk with holographic displays showing cryptographic algorithms."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 640,
+          "y": 440
+        },
+        {
+          "height": 0,
+          "id": 6,
+          "name": "veru-pool",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "A decorative pool representing the liquidity pools used in the Verū protocol."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 184,
+          "y": 580
+        },
+        {
+          "height": 0,
+          "id": 7,
+          "name": "veru-sticks",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "Symbolic representation of transaction verification sticks used in the Verū consensus mechanism."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 75,
+          "y": 480
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 8,
+  "nextobjectid": 8,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.7.2",
+  "tileheight": 48,
+  "tilesets": [
+    {
+      "columns": 1,
+      "firstgid": 1,
+      "image": "/assets/maps/veru-floor-export.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "veru-floor-export",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 2,
+      "image": "/assets/maps/wall.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "wall",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 3,
+      "image": "/assets/maps/desk.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "desk",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 4,
+      "image": "/assets/maps/veru-cashier.png",
+      "imageheight": 83,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "veru-cashier",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 83,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 7,
+      "image": "/assets/maps/veru-computers.png",
+      "imageheight": 83,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "veru-computers",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 83,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 10,
+      "image": "/assets/maps/veru-backwall.png",
+      "imageheight": 144,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "veru-backwall",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 144,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 11,
+      "image": "/assets/maps/top-border.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "top-border",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 12,
+      "image": "/assets/maps/left-border.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "left-border",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 13,
+      "image": "/assets/maps/right-border.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "right-border",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 14,
+      "image": "/assets/maps/bottom-border.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "bottom-border",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 17,
+      "image": "/assets/maps/right-t-corner-border.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "right-t-corner-border",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 18,
+      "image": "/assets/maps/left-t-corner-border.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "left-t-corner-border",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 19,
+      "image": "/assets/maps/left-t-edge-corner.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "left-t-edge-corner",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 20,
+      "image": "/assets/maps/right-t-edge-corner.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "right-t-edge-corner",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 21,
+      "image": "/assets/maps/left-b-edge-corner.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "left-b-edge-corner",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 22,
+      "image": "/assets/maps/right-b-edge-corner.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "right-b-edge-corner",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 23,
+      "image": "/assets/maps/veru-desk.png",
+      "imageheight": 63,
+      "imagewidth": 96,
+      "margin": 0,
+      "name": "veru-desk",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 63,
+      "tilewidth": 96
+    },
+    {
+      "columns": 1,
+      "firstgid": 24,
+      "image": "/assets/maps/veru-pool.png",
+      "imageheight": 71,
+      "imagewidth": 81,
+      "margin": 0,
+      "name": "veru-pool",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 71,
+      "tilewidth": 81
+    },
+    {
+      "columns": 1,
+      "firstgid": 25,
+      "image": "/assets/maps/veru-sticks.png",
+      "imageheight": 68,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "veru-sticks",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 68,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 26,
+      "image": "/assets/maps/gray-brick.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "gray-brick",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    }
+  ],
+  "tilewidth": 48,
+  "type": "map",
+  "version": "1.6"
+} 

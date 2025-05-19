@@ -12,6 +12,10 @@ export const SceneKeys = {
   Level3: 'Level3Scene',
   Level4: 'Level4Scene',
   Level5: 'Level5Scene',
+  // Add building scenes
+  FirstBuilding: 'FirstBuildingScene',
+  SecondBuilding: 'SecondBuildingScene',
+  ThirdBuilding: 'ThirdBuildingScene',
 };
 
 /**
@@ -30,6 +34,11 @@ export const gameScenes = async () => {
   const Level4Scene = (await import('@/components/game/scenes/levels/Level4Scene')).default;
   const Level5Scene = (await import('@/components/game/scenes/levels/Level5Scene')).default;
   
+  // Add building scene imports
+  const FirstBuildingScene = (await import('@/components/game/scenes/buildings/FirstBuildingScene')).default;
+  const SecondBuildingScene = (await import('@/components/game/scenes/buildings/SecondBuildingScene')).default;
+  const ThirdBuildingScene = (await import('@/components/game/scenes/buildings/ThirdBuildingScene')).default;
+  
   return [
     MainScene,
     Level1Scene,
@@ -37,5 +46,9 @@ export const gameScenes = async () => {
     Level3Scene,
     Level4Scene,
     Level5Scene,
+    // Add building scenes
+    FirstBuildingScene,
+    SecondBuildingScene,
+    ThirdBuildingScene,
   ];
 }; 

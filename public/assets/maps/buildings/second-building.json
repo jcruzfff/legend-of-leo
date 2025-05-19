@@ -1,0 +1,127 @@
+{
+  "building": {
+    "id": "second-building",
+    "name": "Arcane Exchange Building",
+    "description": "A modern building with arcane, cryptographic aesthetic.",
+    "width": 16,
+    "height": 20
+  },
+  "exits": [
+    {
+      "id": "main",
+      "x": 384,
+      "y": 880,
+      "width": 80,
+      "height": 60,
+      "destination": {
+        "levelId": "level5",
+        "entranceId": "second-building-entrance"
+      }
+    }
+  ],
+  "interactiveObjects": [
+    {
+      "id": "cashier",
+      "name": "arcane-cashier",
+      "type": "npc",
+      "x": 384,
+      "y": 302,
+      "width": 64,
+      "height": 96,
+      "properties": {
+        "interactionMessage": "Welcome to the Arcane building! How may I help you? We specialize in privacy-enhancing technologies.",
+        "texture": "arcane-cashier",
+        "scale": 1.2
+      }
+    },
+    {
+      "id": "left-couch",
+      "name": "arcane-leftcouch",
+      "type": "furniture",
+      "x": 120,
+      "y": 250,
+      "width": 69,
+      "height": 128,
+      "properties": {
+        "interactionMessage": "A comfortable couch with arcane symbols embroidered on the cushions.",
+        "texture": "arcane-leftcouch",
+        "scale": 1.0,
+        "isInteractive": true
+      }
+    },
+    {
+      "id": "right-couch",
+      "name": "arcane-rightcouch",
+      "type": "furniture",
+      "x": 120,
+      "y": 350,
+      "width": 69,
+      "height": 128,
+      "properties": {
+        "interactionMessage": "A luxurious couch with runes that glow faintly when you look at them directly.",
+        "texture": "arcane-rightcouch",
+        "scale": 1.0,
+        "isInteractive": true
+      }
+    },
+    {
+      "id": "lockers",
+      "name": "arcane-lockers",
+      "type": "furniture",
+      "x": 120,
+      "y": 450,
+      "width": 48,
+      "height": 96,
+      "properties": {
+        "interactionMessage": "A row of secure lockers with cryptographic locks. Each requires a unique private key.",
+        "texture": "arcane-lockers",
+        "scale": 1.0,
+        "isInteractive": true
+      }
+    },
+    {
+      "id": "bar-table",
+      "name": "arcane-bartable",
+      "type": "furniture",
+      "x": 300,
+      "y": 450,
+      "width": 96,
+      "height": 80,
+      "properties": {
+        "interactionMessage": "A sleek bar table with embedded screens showing cryptocurrency price charts.",
+        "texture": "arcane-bartable",
+        "scale": 1.0,
+        "isInteractive": true
+      }
+    },
+    {
+      "id": "snacks",
+      "name": "arcane-snacks",
+      "type": "furniture",
+      "x": 500,
+      "y": 450,
+      "width": 48,
+      "height": 96,
+      "properties": {
+        "interactionMessage": "A vending machine with unusual snacks. The prices are listed in various cryptocurrencies.",
+        "texture": "arcane-snacks",
+        "scale": 1.0,
+        "isInteractive": true
+      }
+    }
+  ],
+  "borderTextures": {
+    "top": "gray-brick",
+    "left": "gray-brick",
+    "right": "gray-brick", 
+    "bottom": "gray-brick",
+    "topLeftCorner": "gray-brick",
+    "topRightCorner": "gray-brick",
+    "bottomLeftCorner": "gray-brick",
+    "bottomRightCorner": "gray-brick"
+  },
+  "backgroundTextures": {
+    "floor": "floor",
+    "backwall": "arcane-backwall"
+  }
+} 

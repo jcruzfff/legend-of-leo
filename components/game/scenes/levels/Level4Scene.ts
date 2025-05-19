@@ -1110,6 +1110,16 @@ export default class Level4Scene extends Scene {
       
       // Check if the wallet has sufficient Aleo credits
       console.log('[Level4Scene] Checking if wallet has sufficient Aleo credits');
+      const balances = this.walletService.getBalances();
+      console.log('[Level4Scene] Available balances:', balances.map(b => ({
+        programId: b.programId,
+        coinbaseSymbol: b.coinbaseSymbol,
+        name: b.name,
+        symbol: b.symbol,
+        public: b.values.public,
+        private: b.values.private
+      })));
+      
       const hasCredits = this.walletService.hasAleoCredits();
       console.log('[Level4Scene] Has sufficient credits:', hasCredits);
       

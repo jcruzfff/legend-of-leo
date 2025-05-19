@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useGameState } from '@/lib/contexts/GameContext';
 import GameContainer from './GameContainer';
 import { SceneKeys } from '@/lib/game/scenes';
+import Image from 'next/image';
 
 interface StartScreenProps {
   initialScene?: string;
@@ -25,7 +26,6 @@ export default function StartScreen({ initialScene = SceneKeys.Level1, devModeAu
         try {
           const parsedState = JSON.parse(savedState);
           // Consider a game "saved" if they've made any meaningful progress
-          // You can customize this logic based on your game
           const hasProgress = 
             parsedState.score > 0 || 
             parsedState.level > 1 || 
@@ -91,8 +91,19 @@ export default function StartScreen({ initialScene = SceneKeys.Level1, devModeAu
   // Show confirmation screen
   if (screenState === 'confirm') {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full text-ui-text" style={{ backgroundColor: '#2B2A3D' }}>
-        <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md">
+      <div className="relative flex flex-col items-center justify-center w-full h-full text-ui-text">
+        {/* Background image with overlay */}
+        <div className="absolute inset-0 z-0 bg-black">
+          <Image
+            src="/assets/maps/start-screen.png"
+            alt="Legend of Leo"
+            fill
+            style={{ objectFit: 'cover', opacity: 0 }}
+            priority
+          />
+        </div>
+        
+        <div className="relative z-10 bg-gray-900 bg-opacity-80 p-8 rounded-lg shadow-lg max-w-md">
           <h2 className="text-2xl font-bold mb-4 text-white">Start New Game?</h2>
           <p className="mb-6 text-white">
             You have a saved game. Starting a new game will erase your current progress.
@@ -102,13 +113,13 @@ export default function StartScreen({ initialScene = SceneKeys.Level1, devModeAu
           <div className="flex space-x-4">
             <button 
               onClick={startNewGame}
-              className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition duration-300"
+              className="bg-[#E8E8C3] text-black hover:opacity-90 py-2 px-6 rounded-lg transition duration-300 font-medium"
             >
               Start New Game
             </button>
             <button 
               onClick={handleCancelNewGame}
-              className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition duration-300"
+              className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-6 rounded-lg transition duration-300 font-medium"
             >
               Cancel
             </button>
@@ -118,37 +129,45 @@ export default function StartScreen({ initialScene = SceneKeys.Level1, devModeAu
     );
   }
   
-  // Show start screen
+  // Show start screen with new background image
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full text-ui-text" style={{ backgroundColor: '#2B2A3D' }}>
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-2 text-white">Legend of Leo</h1>
-        <p className="text-lg text-white">An Aleo Blockchain Learning Adventure</p>
+    <div className="relative flex flex-col items-center justify-center w-full h-full bg-black">
+      {/* Background image - without overlay */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/assets/maps/start-screen.png"
+          alt="Legend of Leo"
+          fill
+          style={{ objectFit: 'cover', opacity: 1 }}
+          priority
+        />
       </div>
       
-      <div className="flex flex-col space-y-4 w-64">
-        <button 
-          onClick={handleStartNewGame}
-          className="bg-primary-300 hover:bg-primary-400 text-white py-3 px-6 rounded-lg transition duration-300 font-semibold shadow-lg"
-        >
-          Start New Game
-        </button>
+      {/* Content centered vertically in the screen */}
+      <div className="relative z-10 flex flex-col items-center justify-center h-full w-full">
+        {/* Button section - side by side positioning */}
+        <div className="flex justify-start ml-72 w-full space-x-4 mt-[680px] mb-[100px] cursor-pointer">
+          <button 
+            onClick={handleStartNewGame}
+            className="bg-[#E8E8C3] hover:opacity-90 text-black py-4 px-8 rounded-lg transition duration-300 font-medium text-lg cursor-pointer"
+          >
+            Start New Game
+          </button>
+          
+          <button 
+            onClick={handleContinueGame}
+            className={`${
+              hasSavedGame 
+                ? 'bg-white hover:opacity-90 text-black' 
+                : 'bg-white opacity-50 cursor-not-allowed text-gray-400'
+            } py-4 px-8 rounded-lg transition duration-300 font-medium text-lg`}
+            disabled={!hasSavedGame}
+          >
+            Continue Game
+          </button>
+        </div>
         
-        <button 
-          onClick={handleContinueGame}
-          className={`${
-            hasSavedGame 
-              ? 'bg-primary-300 hover:bg-primary-400 text-white' 
-              : 'bg-gray-500 cursor-not-allowed text-gray-300'
-          } py-3 px-6 rounded-lg transition duration-300 font-semibold shadow-lg`}
-          disabled={!hasSavedGame}
-        >
-          Continue
-        </button>
-      </div>
-      
-      <div className="absolute bottom-4 text-sm opacity-70 text-white">
-        Press Start to begin your blockchain journey
+
       </div>
     </div>
   );

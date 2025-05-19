@@ -462,12 +462,28 @@ export default class RandomHouseScene extends Scene {
   }
   
   update() {
-    // Update player movement if player exists
-    if (this.player && this.cursors) {
-      this.player.update(this.cursors);
-    }
+    if (!this.player || !this.cursors) return;
     
-    // Check for interactive objects
+    // Update player movement and animations
+    this.player.update(this.cursors);
+    
+    // Check for nearby interactive objects
     this.checkInteractiveObjects();
+  }
+  
+  /**
+   * Clean up resources when scene is shut down
+   */
+  shutdown() {
+    // Clean up resources
+    if (this.interactionIndicators) {
+      this.interactionIndicators.clear();
+    }
+
+    // We should NOT clear the localStorage here since we want to 
+    // persist the current scene when refreshing the page
+    // Only remove all listeners to prevent memory leaks
+    this.input.keyboard?.off('keydown-SPACE');
+    this.input.keyboard?.off('keydown-ESC');
   }
 } 

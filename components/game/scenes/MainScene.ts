@@ -444,6 +444,12 @@ export default class MainScene extends Scene {
   }
 
   create() {
+    // When the main scene starts, clear the currentScene from localStorage
+    // so the user doesn't get stuck in a building if they refresh from the main menu
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentScene');
+    }
+    
     // Disable physics debugging
     this.physics.world.debugGraphic.clear();
     this.physics.world.debugGraphic.visible = false;

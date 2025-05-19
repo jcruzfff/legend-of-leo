@@ -48,11 +48,8 @@ export default class Level5Scene extends Scene {
   }
 
   init() {
-    // Store current scene in localStorage for development mode reload
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('currentScene', this.scene.key);
-      console.log('Current scene saved:', this.scene.key);
-    }
+    // Remove localStorage storage of current scene
+    // We don't need it anymore as we're using proper scene navigation
     
     // Initialize interactive objects array
     this.interactiveObjects = [];
@@ -378,7 +375,7 @@ export default class Level5Scene extends Scene {
     const welcomeText = this.add.text(
       width / 2,
       height / 2,
-      "Welcome to Level 5!\nAleo Ecosystem Integration",
+      "Welcome to the Level 5\nAleo the Ecosystem",
       {
         fontSize: '24px',
         fontFamily: 'Arial',
@@ -970,10 +967,8 @@ export default class Level5Scene extends Scene {
    * Clean up any game objects when the scene shuts down
    */
   shutdown() {
-    // Player cleanup
-    if (this.player && this.player.sprite) {
-      this.player.sprite.destroy();
-    }
+    // We should NOT clear the localStorage here since we want to 
+    // persist the current scene when refreshing the page
     
     // Clean up all indicators
     this.interactionIndicators.forEach(indicator => {
@@ -991,6 +986,7 @@ export default class Level5Scene extends Scene {
     if (keyboard) {
       keyboard.off('keydown-SPACE');
       keyboard.off('keydown-D');
+      keyboard.off('keydown-M');
     }
   }
 

@@ -292,20 +292,44 @@ export class PuzzleWalletService {
       return false;
     }
     
-    // Look for Aleo credits in the balances
-    const credits = this.balances.find(balance => 
-      balance.coinbaseSymbol === 'credits' || 
-      balance.name.toLowerCase().includes('credit') ||
-      balance.symbol?.toLowerCase().includes('credit')
+    console.log('[PuzzleWalletService] Checking wallet balances for Aleo credits');
+    
+    // First check: Look specifically for the official credits.aleo program ID
+    const officialCredits = this.balances.find(balance => 
+      balance.programId === 'credits.aleo'
     );
     
-    if (!credits) {
-      return false;
+    if (officialCredits) {
+      const totalBalance = officialCredits.values.private + officialCredits.values.public;
+      console.log(`[PuzzleWalletService] Found official credits.aleo: ${totalBalance} (${officialCredits.values.private} private + ${officialCredits.values.public} public)`);
+      return totalBalance >= minAmount;
     }
     
-    // Check if the combined balance (public + private) is greater than or equal to minAmount
-    const totalBalance = credits.values.private + credits.values.public;
-    return totalBalance >= minAmount;
+    // Second check: Look for coinbaseSymbol === "aleo"
+    const aleoSymbolCredits = this.balances.find(balance => 
+      balance.coinbaseSymbol === 'aleo'
+    );
+    
+    if (aleoSymbolCredits) {
+      const totalBalance = aleoSymbolCredits.values.private + aleoSymbolCredits.values.public;
+      console.log(`[PuzzleWalletService] Found Aleo symbol credits: ${totalBalance} (${aleoSymbolCredits.values.private} private + ${aleoSymbolCredits.values.public} public)`);
+      return totalBalance >= minAmount;
+    }
+    
+    // Fallback check: Look for any credit-like token as last resort
+    const anyCredits = this.balances.find(balance => 
+      balance.name.toLowerCase().includes('credit') ||
+      (balance.symbol && balance.symbol.toLowerCase().includes('credit'))
+    );
+    
+    if (anyCredits) {
+      const totalBalance = anyCredits.values.private + anyCredits.values.public;
+      console.log(`[PuzzleWalletService] Found credit-like token: ${totalBalance} (${anyCredits.values.private} private + ${anyCredits.values.public} public)`);
+      return totalBalance >= minAmount;
+    }
+    
+    console.log('[PuzzleWalletService] No eligible credits found in wallet');
+    return false;
   }
   
   /**

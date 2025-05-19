@@ -102,7 +102,8 @@ const GameContainerClient = ({
               }
             }
             
-            // Start the initial scene
+            // Always start at the initialScene provided
+            console.log('Starting game at scene:', initialScene);
             this.scene.start(initialScene);
           }
         }

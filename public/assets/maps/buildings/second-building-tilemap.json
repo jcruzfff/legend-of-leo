@@ -1,0 +1,499 @@
+{
+  "compressionlevel": -1,
+  "height": 20,
+  "width": 16,
+  "infinite": false,
+  "backgroundColor": "#426F60",
+  "layers": [
+    {
+      "data": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0
+      ],
+      "height": 20,
+      "id": 1,
+      "name": "Floor",
+      "opacity": 1,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "height": 20,
+      "id": 3,
+      "name": "Objects",
+      "opacity": 1,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 2,
+        2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+        2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2,
+        2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2
+      ],
+      "height": 20,
+      "id": 4,
+      "name": "Collision",
+      "opacity": 0.8,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1
+      ],
+      "height": 20,
+      "id": 5,
+      "name": "Backwall",
+      "opacity": 1,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "data": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "height": 20,
+      "id": 6,
+      "name": "Furniture",
+      "opacity": 1,
+      "type": "tilelayer",
+      "visible": true,
+      "width": 16,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "draworder": "topdown",
+      "id": 7,
+      "name": "InteractiveObjects",
+      "objects": [
+        {
+          "height": 0,
+          "id": 1,
+          "name": "arcane-cashier",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "Welcome to the Arcane building! How may I help you? We specialize in privacy-enhancing technologies."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.2
+            }
+          ],
+          "rotation": 0,
+          "type": "cashier",
+          "visible": true,
+          "width": 0,
+          "x": 384,
+          "y": 302
+        },
+        {
+          "height": 0,
+          "id": 3,
+          "name": "exit-door",
+          "point": true,
+          "properties": [
+            {
+              "name": "doorId",
+              "type": "string",
+              "value": "main"
+            }
+          ],
+          "rotation": 0,
+          "type": "exit",
+          "visible": true,
+          "width": 0,
+          "x": 384,
+          "y": 880
+        },
+        {
+          "height": 0,
+          "id": 5,
+          "name": "arcane-leftcouch",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "A comfortable couch with arcane symbols embroidered on the cushions."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            },
+            {
+              "name": "isInteractive",
+              "type": "bool",
+              "value": true
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 520,
+          "y": 650
+        },
+        {
+          "height": 0,
+          "id": 6,
+          "name": "arcane-rightcouch",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "A luxurious couch with runes that glow faintly when you look at them directly."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            },
+            {
+              "name": "isInteractive",
+              "type": "bool",
+              "value": true
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 650,
+          "y": 650
+        },
+        {
+          "height": 0,
+          "id": 7,
+          "name": "arcane-lockers",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "A row of secure lockers with cryptographic locks. Each requires a unique private key."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            },
+            {
+              "name": "isInteractive",
+              "type": "bool",
+              "value": true
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 120,
+          "y": 180
+        },
+        {
+          "height": 0,
+          "id": 8,
+          "name": "arcane-bartable",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "A sleek bar table with embedded screens showing cryptocurrency price charts."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            },
+            {
+              "name": "isInteractive",
+              "type": "bool",
+              "value": true
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 140,
+          "y": 560
+        },
+        {
+          "height": 0,
+          "id": 9,
+          "name": "arcane-snacks",
+          "point": true,
+          "properties": [
+            {
+              "name": "interactionMessage",
+              "type": "string",
+              "value": "A vending machine with unusual snacks. The prices are listed in various cryptocurrencies."
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "value": 1.0
+            },
+            {
+              "name": "isInteractive",
+              "type": "bool",
+              "value": true
+            }
+          ],
+          "rotation": 0,
+          "type": "furniture",
+          "visible": true,
+          "width": 0,
+          "x": 120,
+          "y": 450
+        }
+      ],
+      "opacity": 1,
+      "type": "objectgroup",
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "nextlayerid": 8,
+  "nextobjectid": 11,
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "tiledversion": "1.7.2",
+  "tileheight": 48,
+  "tilesets": [
+    {
+      "columns": 1,
+      "firstgid": 1,
+      "image": "/assets/maps/gray-brick.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "gray-brick",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 2,
+      "image": "/assets/maps/wall.png",
+      "imageheight": 48,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "wall",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 48,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 3,
+      "image": "/assets/maps/arcane-lockers.png",
+      "imageheight": 96,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "arcane-lockers",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 96,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 4,
+      "image": "/assets/maps/arcane-cashier.png",
+      "imageheight": 96,
+      "imagewidth": 64,
+      "margin": 0,
+      "name": "arcane-cashier",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 96,
+      "tilewidth": 64
+    },
+    {
+      "columns": 1,
+      "firstgid": 10,
+      "image": "/assets/maps/arcane-backwall.png",
+      "imageheight": 144,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "arcane-backwall",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 144,
+      "tilewidth": 48
+    },
+    {
+      "columns": 1,
+      "firstgid": 23,
+      "image": "/assets/maps/arcane-leftcouch.png",
+      "imageheight": 128,
+      "imagewidth": 69,
+      "margin": 0,
+      "name": "arcane-leftcouch",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 128,
+      "tilewidth": 69
+    },
+    {
+      "columns": 1,
+      "firstgid": 24,
+      "image": "/assets/maps/arcane-rightcouch.png",
+      "imageheight": 128,
+      "imagewidth": 69,
+      "margin": 0,
+      "name": "arcane-rightcouch",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 128,
+      "tilewidth": 69
+    },
+    {
+      "columns": 1,
+      "firstgid": 25,
+      "image": "/assets/maps/arcane-bartable.png",
+      "imageheight": 80,
+      "imagewidth": 96,
+      "margin": 0,
+      "name": "arcane-bartable",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 80,
+      "tilewidth": 96
+    },
+    {
+      "columns": 1,
+      "firstgid": 26,
+      "image": "/assets/maps/arcane-snacks.png",
+      "imageheight": 96,
+      "imagewidth": 48,
+      "margin": 0,
+      "name": "arcane-snacks",
+      "spacing": 0,
+      "tilecount": 1,
+      "tileheight": 96,
+      "tilewidth": 48
+    }
+  ],
+  "tilewidth": 48,
+  "type": "map",
+  "version": "1.6"
+} 

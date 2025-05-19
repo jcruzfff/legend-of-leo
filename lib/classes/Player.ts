@@ -12,6 +12,8 @@ export default class Player {
   private isMoving: boolean = false;
   private scene: Scene;
   private moveSpeed: number = 180;
+  public nearestInteractiveObject: Phaser.GameObjects.GameObject | undefined;
+  public nearestInteractiveObjectDistance: number = Number.MAX_VALUE;
   
   constructor(scene: Scene, x: number, y: number) {
     this.scene = scene;
@@ -27,7 +29,7 @@ export default class Player {
         // Fall back to Aseprite file if player sprite isn't available
         console.log('Attempting to use Aseprite animations');
         if ('createAnimationsFromAseprite' in scene) {
-          const createAnimationsFromAseprite = (scene as any).createAnimationsFromAseprite;
+          const createAnimationsFromAseprite = (scene as { createAnimationsFromAseprite: (scene: Scene, key: string, frameRate: number) => Record<string, string> }).createAnimationsFromAseprite;
           this.animations = createAnimationsFromAseprite(scene, 'leo', 10);
           this.sprite = scene.physics.add.sprite(x, y, 'leo');
           
