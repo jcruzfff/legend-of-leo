@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Loading from '@/components/ui/Loading';
 

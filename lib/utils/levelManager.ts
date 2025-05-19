@@ -7,7 +7,6 @@
 
 // Custom event for level changes
 const LEVEL_CHANGED_EVENT = 'level-changed';
-const WALLET_CONNECT_REQUEST = 'wallet-connect-request';
 
 // Get the current level from localStorage
 export function getCurrentLevel(): number {

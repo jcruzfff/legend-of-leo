@@ -552,9 +552,7 @@ export default class SecondBuildingScene extends Scene {
             x: x,
             y: y,
             texture: object.name || 'arcane-cashier',
-            scale: (properties['scale'] as number) || 1,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            _interactionMessage: (properties['interactionMessage'] as string) || 'Welcome to the Arcane building! How may I help you?'
+            scale: (properties['scale'] as number) || 1
           });
           break;
           
@@ -585,15 +583,12 @@ export default class SecondBuildingScene extends Scene {
     x,
     y,
     texture,
-    scale = 1,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _interactionMessage
+    scale = 1
   }: {
     x: number;
     y: number;
     texture: string;
     scale?: number;
-    _interactionMessage: string;
   }) {
     if (!this.textures.exists(texture)) {
       console.warn(`Texture ${texture} not found, using default cashier texture`);

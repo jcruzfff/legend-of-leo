@@ -28,12 +28,6 @@ export default class Level3Scene extends Scene {
   }
 
   init() {
-    // Store current scene in localStorage for development mode reload
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('currentScene', this.scene.key);
-      console.log('Current scene saved:', this.scene.key);
-    }
-    
     // Initialize interactive objects array
     this.interactiveObjects = [];
     this.boardTriggerActivated = false;
@@ -422,7 +416,7 @@ export default class Level3Scene extends Scene {
     
     const text = this.add.text(
       width / 2,
-      height - 240,
+      height - 270,
       message,
       {
         fontSize: '24px',
@@ -437,8 +431,8 @@ export default class Level3Scene extends Scene {
     // Add a continue button
     const continueButton = this.add.rectangle(
       width / 2,
-      height - 55,
-      120,
+      height - 85,
+      160,
       30,
       0x4CAF50
     );
@@ -447,7 +441,7 @@ export default class Level3Scene extends Scene {
     
     const buttonText = this.add.text(
       width / 2,
-      height - 55, 
+      height - 85, 
       'Continue',
       {
         fontSize: '14px',

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useGameState } from '@/lib/contexts/GameContext';
 import { gameScenes, SceneKeys } from '@/lib/game/scenes';
 import dynamic from 'next/dynamic';
+import type Phaser from 'phaser';
 
 interface GameContainerProps {
   width?: number;
@@ -19,9 +20,9 @@ const GameContainerClient = ({
   isNewGame = false,
   initialScene = SceneKeys.Level1
 }: GameContainerProps) => {
-  const gameRef = useRef<any | null>(null);
+  const gameRef = useRef<Phaser.Game | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null);
-  const [phaser, setPhaser] = useState<any | null>(null);
+  const [phaser, setPhaser] = useState<typeof Phaser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { gameState } = useGameState();
@@ -125,7 +126,7 @@ const GameContainerClient = ({
           physics: {
             default: 'arcade',
             arcade: {
-              gravity: { y: 0 },
+              gravity: { x: 0, y: 0 },
               debug: process.env.NODE_ENV === 'development',
             },
           },
@@ -137,7 +138,8 @@ const GameContainerClient = ({
         gameRef.current = new phaser.Game(config);
       } catch (error) {
         console.error('Failed to initialize game:', error);
-        setError(`Failed to initialize game: ${error.message}. Please refresh the page.`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setError(`Failed to initialize game: ${errorMessage}. Please refresh the page.`);
       }
     };
 

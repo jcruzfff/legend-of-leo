@@ -207,13 +207,21 @@ export default class RandomHouseScene extends Scene {
       this.showMessage("A small table with some personal belongings on it.");
     });
     
+    chair.setInteractive({ useHandCursor: true });
+    chair.setData('interactive', true);
+    chair.setData('onInteract', () => {
+      this.showMessage("A simple wooden chair. It looks comfortable enough.");
+    });
+    
     // Add interactive objects
     this.interactiveObjects.push(bed);
     this.interactiveObjects.push(table);
+    this.interactiveObjects.push(chair);
     
     // Create indicators
     this.createInteractionIndicator(bed);
     this.createInteractionIndicator(table);
+    this.createInteractionIndicator(chair);
     
     // Add collision with furniture - create invisible physics objects
     const furniture = this.physics.add.staticGroup();

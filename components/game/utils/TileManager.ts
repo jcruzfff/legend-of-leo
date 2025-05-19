@@ -26,12 +26,13 @@ export class TileManager {
     this.map = this.scene.make.tilemap({ key });
     
     // Add the tileset image to the map
-    this.tileset = this.map.addTilesetImage(tilesetName, tilesetKey);
+    const tileset = this.map.addTilesetImage(tilesetName, tilesetKey);
     
-    if (!this.tileset) {
+    if (!tileset) {
       throw new Error(`Failed to load tileset: ${tilesetName} with key ${tilesetKey}`);
     }
     
+    this.tileset = tileset;
     return this.map;
   }
 
