@@ -189,9 +189,14 @@ export default class Level1Scene extends Scene {
   }
 
   create() {
-    // Disable physics debugging
-    this.physics.world.debugGraphic.clear();
-    this.physics.world.debugGraphic.visible = false;
+    // Initialize physics world if it doesn't exist
+    if (!this.physics.world) {
+      console.warn('Physics world not initialized, skipping debug clear');
+    } else {
+      // Disable physics debugging
+      this.physics.world.debugGraphic?.clear();
+      this.physics.world.debugGraphic?.setVisible(false);
+    }
     
     // Set the background color to match the tilemap backgroundColor
     this.cameras.main.setBackgroundColor('#2B2A3D');

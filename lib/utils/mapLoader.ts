@@ -34,6 +34,12 @@ export function loadTilemap(
     // Try to add each potential tileset in the map
     map.tilesets.forEach(tileset => {
       try {
+        // Check if the tileset image is loaded
+        if (!scene.textures.exists(tileset.name)) {
+          console.warn(`Tileset image '${tileset.name}' not loaded, skipping`);
+          return;
+        }
+        
         const addedTileset = map.addTilesetImage(tileset.name, tileset.name);
         if (addedTileset) {
           tilesets.push(addedTileset);
@@ -56,9 +62,10 @@ export function loadTilemap(
       }
     }
     
-    // If we still don't have any tilesets, throw an error
+    // If we still don't have any tilesets, create a fallback tilemap
     if (tilesets.length === 0) {
-      throw new Error('No valid tilesets found for map');
+      console.warn('No valid tilesets found, using fallback map');
+      return createFallbackMap(scene);
     }
     
     // Create all the layers
@@ -66,6 +73,12 @@ export function loadTilemap(
     
     layerNames.forEach(layerName => {
       try {
+        // Check if the layer exists in the map data
+        if (!map.layers.some(l => l.name === layerName)) {
+          console.warn(`Layer '${layerName}' not found in map data, skipping`);
+          return;
+        }
+        
         const layer = map.createLayer(layerName, tilesets);
         if (layer) {
           layers[layerName] = layer;
@@ -74,8 +87,6 @@ export function loadTilemap(
           if (collisionLayers.includes(layerName)) {
             layer.setCollisionByExclusion([-1]);
           }
-        } else {
-          console.warn(`Layer '${layerName}' not found in map`);
         }
       } catch (e) {
         console.warn(`Failed to create layer ${layerName}:`, e);
@@ -85,21 +96,27 @@ export function loadTilemap(
     return { map, layers };
   } catch (error) {
     console.error('Error loading tilemap:', error);
-    
-    // Create an empty tilemap as fallback
-    const fallbackMap = scene.make.tilemap({
-      tileWidth: 48,
-      tileHeight: 48,
-      width: 20,
-      height: 15
-    });
-    
-    // Create empty layers
-    const fallbackLayers: MapLayers = {};
-    
-    // Return the fallback map and layers
-    return { map: fallbackMap, layers: fallbackLayers };
+    return createFallbackMap(scene);
   }
+}
+
+/**
+ * Create a fallback map when the main tilemap fails to load
+ */
+function createFallbackMap(scene: Scene): { map: Phaser.Tilemaps.Tilemap, layers: MapLayers } {
+  // Create an empty tilemap as fallback
+  const fallbackMap = scene.make.tilemap({
+    tileWidth: 48,
+    tileHeight: 48,
+    width: 20,
+    height: 15
+  });
+  
+  // Create empty layers
+  const fallbackLayers: MapLayers = {};
+  
+  // Return the fallback map and layers
+  return { map: fallbackMap, layers: fallbackLayers };
 }
 
 /**

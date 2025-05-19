@@ -201,9 +201,14 @@ export default class Level2Scene extends Scene {
   }
 
   async create() {
-    // Disable physics debugging
-    this.physics.world.debugGraphic.clear();
-    this.physics.world.debugGraphic.visible = false;
+    // Initialize physics world if it doesn't exist
+    if (!this.physics.world) {
+      console.warn('Physics world not initialized, skipping debug clear');
+    } else {
+      // Disable physics debugging
+      this.physics.world.debugGraphic?.clear();
+      this.physics.world.debugGraphic?.setVisible(false);
+    }
     
     // Set the background color
     this.cameras.main.setBackgroundColor('#2B2A3D');
@@ -271,8 +276,12 @@ export default class Level2Scene extends Scene {
       this.cameras.main.setDeadzone(100, 100);
     }
     
+    // Create the receptionist and keycard wall
+    this.createReceptionist();
+    this.createKeycardWall();
+    
     // Setup wallet connection checking - wrapping in try/catch and swallowing any errors
-    this.setupWalletConnection();
+    await this.setupWalletConnection();
     
     // Create the exit gate
     this.createExitGate();
