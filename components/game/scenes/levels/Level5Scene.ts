@@ -137,9 +137,14 @@ export default class Level5Scene extends Scene {
   }
 
   create() {
-    // Disable physics debugging
-    this.physics.world.debugGraphic.clear();
-    this.physics.world.debugGraphic.visible = false;
+    // Initialize physics world if it doesn't exist
+    if (!this.physics.world) {
+      console.warn('Physics world not initialized, skipping debug clear');
+    } else {
+      // Disable physics debugging
+      this.physics.world.debugGraphic?.clear();
+      this.physics.world.debugGraphic?.setVisible(false);
+    }
     
     // Set the background color to match the tilemap backgroundColor (sky blue for outdoor level)
     this.cameras.main.setBackgroundColor('#87CEEB');
@@ -375,7 +380,7 @@ export default class Level5Scene extends Scene {
     const welcomeText = this.add.text(
       width / 2,
       height / 2,
-      "Welcome to the Level 5\nAleo the Ecosystem",
+      "Welcome to the Level 5\nWork in progress...",
       {
         fontSize: '24px',
         fontFamily: 'Arial',

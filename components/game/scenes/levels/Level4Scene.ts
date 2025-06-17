@@ -196,9 +196,14 @@ export default class Level4Scene extends Scene {
   }
 
   create() {
-    // Disable physics debugging
-    this.physics.world.debugGraphic.clear();
-    this.physics.world.debugGraphic.visible = false;
+    // Initialize physics world if it doesn't exist
+    if (!this.physics.world) {
+      console.warn('Physics world not initialized, skipping debug clear');
+    } else {
+      // Disable physics debugging
+      this.physics.world.debugGraphic?.clear();
+      this.physics.world.debugGraphic?.setVisible(false);
+    }
     
     // Set the background color to match the tilemap backgroundColor
     this.cameras.main.setBackgroundColor('#2B2A3D');
@@ -910,7 +915,7 @@ export default class Level4Scene extends Scene {
       const noAccessText = this.add.text(
         width / 2,
         height / 2,
-        "Guard: Sorry, I can't help you right now.\nThe secure area is locked.",
+        "Dr. Cypherpunk: Sorry, I can't help you right now.\nThe secure area is locked.",
         {
           fontSize: '18px',
           color: '#FFFFFF',
@@ -929,7 +934,7 @@ export default class Level4Scene extends Scene {
       const alreadyHasText = this.add.text(
         width / 2,
         height / 2,
-        "Guard: You already have your graduation NFT and keycard.\nUse it at the terminal to open the gate.",
+        "Dr. Cypherpunk: You already have your graduation NFT and keycard.\nUse it at the terminal to open the gate.",
         {
           fontSize: '18px',
           color: '#FFFFFF',
@@ -975,8 +980,9 @@ export default class Level4Scene extends Scene {
       dialogueBox.setScrollFactor(0);
       dialogueBox.setOrigin(0.5);
       dialogueBox.setStrokeStyle(2, 0xFFFFFF);
+      dialogueBox.setDepth(1000); // Set high depth to appear above player
       
-      const message = "Guard: Congratulations for making it this far!\nWould you like to mint your graduation NFT?";
+      const message = "Dr. Cypherpunk: Congratulations! You are now ready to mint your graduation NFT!";
       
       const text = this.add.text(
         width / 2,
@@ -991,6 +997,7 @@ export default class Level4Scene extends Scene {
       );
       text.setScrollFactor(0);
       text.setOrigin(0.5);
+      text.setDepth(1001); // Set high depth to appear above player
       
       // Add "Mint" button
       const mintButton = this.add.rectangle(
@@ -1002,6 +1009,7 @@ export default class Level4Scene extends Scene {
       );
       mintButton.setScrollFactor(0);
       mintButton.setInteractive({ useHandCursor: true });
+      mintButton.setDepth(1002); // Set high depth to appear above player
       
       const mintText = this.add.text(
         width / 2 - 70,
@@ -1014,6 +1022,7 @@ export default class Level4Scene extends Scene {
       );
       mintText.setScrollFactor(0);
       mintText.setOrigin(0.5);
+      mintText.setDepth(1003); // Set high depth to appear above player
       
       // Add "Deny" button
       const denyButton = this.add.rectangle(
@@ -1025,6 +1034,7 @@ export default class Level4Scene extends Scene {
       );
       denyButton.setScrollFactor(0);
       denyButton.setInteractive({ useHandCursor: true });
+      denyButton.setDepth(1004); // Set high depth to appear above player
       
       const denyText = this.add.text(
         width / 2 + 70,
@@ -1037,6 +1047,7 @@ export default class Level4Scene extends Scene {
       );
       denyText.setScrollFactor(0);
       denyText.setOrigin(0.5);
+      denyText.setDepth(1005); // Set high depth to appear above player
       
       // Group all dialogue elements
       this.mintDialogueGroup = this.add.group([
@@ -1144,6 +1155,7 @@ export default class Level4Scene extends Scene {
         );
         closeButton.setScrollFactor(0);
         closeButton.setInteractive({ useHandCursor: true });
+        closeButton.setDepth(1006); // Set high depth to appear above player
         
         const closeText = this.add.text(
           width / 2,
@@ -1157,6 +1169,7 @@ export default class Level4Scene extends Scene {
         );
         closeText.setScrollFactor(0);
         closeText.setOrigin(0.5);
+        closeText.setDepth(1007); // Set high depth to appear above player
         
         // Add hover effects
         closeButton.on('pointerover', () => {

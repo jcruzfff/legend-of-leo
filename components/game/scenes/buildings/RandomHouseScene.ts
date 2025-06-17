@@ -315,6 +315,7 @@ export default class RandomHouseScene extends Scene {
     const bg = this.add.rectangle(x, y, 500, 120, 0x000000, 0.8);
     bg.setStrokeStyle(2, 0xffffff);
     bg.setScrollFactor(0); // Fix to camera
+    bg.setDepth(1000); // Set high depth to appear above player
     
     // Add text
     const text = this.add.text(x, y, message, {
@@ -325,6 +326,7 @@ export default class RandomHouseScene extends Scene {
     });
     text.setOrigin(0.5);
     text.setScrollFactor(0); // Fix to camera
+    text.setDepth(1001); // Set high depth to appear above player
     
     // Group for easier cleanup
     const group = this.add.group([bg, text]);

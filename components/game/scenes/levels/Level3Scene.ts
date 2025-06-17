@@ -174,9 +174,14 @@ export default class Level3Scene extends Scene {
   }
 
   create() {
-    // Disable physics debugging
-    this.physics.world.debugGraphic.clear();
-    this.physics.world.debugGraphic.visible = false;
+    // Initialize physics world if it doesn't exist
+    if (!this.physics.world) {
+      console.warn('Physics world not initialized, skipping debug clear');
+    } else {
+      // Disable physics debugging
+      this.physics.world.debugGraphic?.clear();
+      this.physics.world.debugGraphic?.setVisible(false);
+    }
     
     // Set the background color
     this.cameras.main.setBackgroundColor('#2B2A3D');
@@ -411,6 +416,7 @@ export default class Level3Scene extends Scene {
     dialogueBox.setScrollFactor(0);
     dialogueBox.setOrigin(0.5);
     dialogueBox.setStrokeStyle(2, 0xFFFFFF);
+    dialogueBox.setDepth(1000); // Set high depth to appear above player
     
       const message = "Aleo is like the lego building blocks for users to take advantage of private, decentralized apps that use zero-knowledge cryptography — a shield against surveillance, exposure, and manipulation.\n\nThis isn't just about code. It's about control. It's about giving users the power to prove things without revealing everything.\n\nHere, privacy isn't a feature. It's the foundation.";
     
@@ -427,6 +433,7 @@ export default class Level3Scene extends Scene {
     );
     text.setScrollFactor(0);
     text.setOrigin(0.5);
+    text.setDepth(1001); // Set high depth to appear above player
     
     // Add a continue button
     const continueButton = this.add.rectangle(
@@ -438,6 +445,7 @@ export default class Level3Scene extends Scene {
     );
     continueButton.setScrollFactor(0);
     continueButton.setInteractive({ useHandCursor: true });
+    continueButton.setDepth(1002); // Set high depth to appear above player
     
     const buttonText = this.add.text(
       width / 2,
@@ -450,6 +458,7 @@ export default class Level3Scene extends Scene {
     );
     buttonText.setScrollFactor(0);
     buttonText.setOrigin(0.5);
+    buttonText.setDepth(1003); // Set high depth to appear above player
     
     // Group all dialogue elements
     const dialogueGroup = this.add.group([dialogueBox, text, continueButton, buttonText]);
